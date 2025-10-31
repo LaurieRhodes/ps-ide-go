@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PowerShell syntax highlighting for GtkSourceView
+  Based on PowerShell 7.x syntax
+  
+  Author: PS-IDE-Go Project
+  License: MIT
+-->
+<language id="powershell" name="PowerShell" version="2.0" _section="Script">
+  <metadata>
+    <property name="mimetypes">text/x-powershell;application/x-powershell</property>
+    <property name="globs">*.ps1;*.psm1;*.psd1</property>
+    <property name="line-comment-start">#</property>
+    <property name="block-comment-start">&lt;#</property>
+    <property name="block-comment-end">#&gt;</property>
+  </metadata>
+
+  <styles>
+    <style id="comment" name="Comment" map-to="def:comment"/>
+    <style id="string" name="String" map-to="def:string"/>
+    <style id="here-string" name="Here-String" map-to="def:string"/>
+    <style id="keyword" name="Keyword" map-to="def:keyword"/>
+    <style id="cmdlet" name="Cmdlet" map-to="def:function"/>
+    <style id="variable" name="Variable" map-to="def:identifier"/>
+    <style id="operator" name="Operator" map-to="def:operator"/>
+    <style id="number" name="Number" map-to="def:number"/>
+    <style id="type" name="Type" map-to="def:type"/>
+    <style id="boolean" name="Boolean" map-to="def:boolean"/>
+    <style id="special-variable" name="Special Variable" map-to="def:special-constant"/>
+    <style id="attribute" name="Attribute" map-to="def:preprocessor"/>
+  </styles>
+
+  <definitions>
+
+    <!-- Block Comments -->
+    <context id="block-comment" style-ref="comment" class="comment" class-disabled="no-spell-check">
+      <start>&lt;#</start>
+      <end>#&gt;</end>
+      <include>
+        <context ref="def:in-comment"/>
+      </include>
+    </context>
+
+    <!-- Line Comments -->
+    <context id="line-comment" style-ref="comment" end-at-line-end="true" class="comment" class-disabled="no-spell-check">
+      <start>#</start>
+      <include>
+        <context ref="def:in-comment"/>
+      </include>
+    </context>
+
+    <!-- Here-Strings (Double Quote) -->
+    <context id="here-string-double" style-ref="here-string" class="string">
+      <start>@"$</start>
+      <end>^"@</end>
+      <include>
+        <context ref="variable"/>
+        <context ref="escape-char"/>
+      </include>
+    </context>
+
+    <!-- Here-Strings (Single Quote) -->
+    <context id="here-string-single" style-ref="here-string" class="string">
+      <start>@'$</start>
+      <end>^'@</end>
+    </context>
+
+    <!-- Double Quoted Strings with interpolation -->
+    <context id="string-double" style-ref="string" end-at-line-end="true" class="string">
+      <start>"</start>
+      <end>"</end>
+      <include>
+        <context ref="variable"/>
+        <context ref="escape-char"/>
+        <context ref="subexpression"/>
+      </include>
+    </context>
+
+    <!-- Single Quoted Strings (no interpolation) -->
+    <context id="string-single" style-ref="string" end-at-line-end="true" class="string">
+      <start>'</start>
+      <end>'</end>
+      <include>
+        <context id="escape-single-quote" style-ref="def:special-char">
+          <match>''</match>
+        </context>
+      </include>
+    </context>
+
+    <!-- Escape Characters -->
+    <context id="escape-char" style-ref="def:special-char">
+      <match>`[`0abefnrtv"'$]</match>
+    </context>
+
+    <!-- Subexpressions in strings $(...) -->
+    <context id="subexpression" style-ref="def:special-char">
+      <start>\$\(</start>
+      <end>\)</end>
+      <include>
+        <context ref="powershell"/>
+      </include>
+    </context>
+
+    <!-- Special/Automatic Variables -->
+    <context id="special-variable" style-ref="special-variable">
+      <prefix>\$</prefix>
+      <keyword>_</keyword>
+      <keyword>\^</keyword>
+      <keyword>\$</keyword>
+      <keyword>\?</keyword>
+      <keyword>args</keyword>
+      <keyword>ConsoleFileName</keyword>
+      <keyword>Error</keyword>
+      <keyword>Event</keyword>
+      <keyword>EventArgs</keyword>
+      <keyword>EventSubscriber</keyword>
+      <keyword>ExecutionContext</keyword>
+      <keyword>false</keyword>
+      <keyword>foreach</keyword>
+      <keyword>HOME</keyword>
+      <keyword>Host</keyword>
+      <keyword>input</keyword>
+      <keyword>IsCoreCLR</keyword>
+      <keyword>IsLinux</keyword>
+      <keyword>IsMacOS</keyword>
+      <keyword>IsWindows</keyword>
+      <keyword>LASTEXITCODE</keyword>
+      <keyword>Matches</keyword>
+      <keyword>MyInvocation</keyword>
+      <keyword>NestedPromptLevel</keyword>
+      <keyword>null</keyword>
+      <keyword>PID</keyword>
+      <keyword>PROFILE</keyword>
+      <keyword>PSBoundParameters</keyword>
+      <keyword>PSCmdlet</keyword>
+      <keyword>PSCommandPath</keyword>
+      <keyword>PSCulture</keyword>
+      <keyword>PSDebugContext</keyword>
+      <keyword>PSHOME</keyword>
+      <keyword>PSItem</keyword>
+      <keyword>PSScriptRoot</keyword>
+      <keyword>PSSenderInfo</keyword>
+      <keyword>PSUICulture</keyword>
+      <keyword>PSVersionTable</keyword>
+      <keyword>PWD</keyword>
+      <keyword>Sender</keyword>
+      <keyword>ShellId</keyword>
+      <keyword>StackTrace</keyword>
+      <keyword>this</keyword>
+      <keyword>true</keyword>
+    </context>
+
+    <!-- Regular Variables -->
+    <context id="variable" style-ref="variable">
+      <match>\$[a-zA-Z_][a-zA-Z0-9_]*</match>
+    </context>
+
+    <!-- Variable with braces ${} -->
+    <context id="variable-braced" style-ref="variable">
+      <match>\$\{[^}]+\}</match>
+    </context>
+
+    <!-- Types -->
+    <context id="type-annotation" style-ref="type">
+      <match>\[[a-zA-Z_][a-zA-Z0-9_.]*\]</match>
+    </context>
+
+    <!-- Attributes -->
+    <context id="attribute" style-ref="attribute">
+      <match>\[[a-zA-Z_][a-zA-Z0-9_]*\([^\]]*\)\]</match>
+    </context>
+
+    <!-- Boolean Keywords -->
+    <context id="boolean" style-ref="boolean">
+      <prefix>\$</prefix>
+      <keyword>true</keyword>
+      <keyword>false</keyword>
+      <keyword>null</keyword>
+    </context>
+
+    <!-- Keywords -->
+    <context id="keywords" style-ref="keyword">
+      <keyword>begin</keyword>
+      <keyword>break</keyword>
+      <keyword>catch</keyword>
+      <keyword>class</keyword>
+      <keyword>continue</keyword>
+      <keyword>data</keyword>
+      <keyword>define</keyword>
+      <keyword>do</keyword>
+      <keyword>dynamicparam</keyword>
+      <keyword>else</keyword>
+      <keyword>elseif</keyword>
+      <keyword>end</keyword>
+      <keyword>enum</keyword>
+      <keyword>exit</keyword>
+      <keyword>filter</keyword>
+      <keyword>finally</keyword>
+      <keyword>for</keyword>
+      <keyword>foreach</keyword>
+      <keyword>from</keyword>
+      <keyword>function</keyword>
+      <keyword>if</keyword>
+      <keyword>in</keyword>
+      <keyword>param</keyword>
+      <keyword>process</keyword>
+      <keyword>return</keyword>
+      <keyword>switch</keyword>
+      <keyword>throw</keyword>
+      <keyword>trap</keyword>
+      <keyword>try</keyword>
+      <keyword>until</keyword>
+      <keyword>using</keyword>
+      <keyword>var</keyword>
+      <keyword>while</keyword>
+      <keyword>workflow</keyword>
+    </context>
+
+    <!-- Common Cmdlets (Verb-Noun pattern) -->
+    <context id="cmdlet" style-ref="cmdlet">
+      <match extended="true" case-sensitive="false">
+        \b(
+        Add|Clear|Close|Copy|Enter|Exit|Find|Format|Get|Hide|Join|
+        Lock|Move|New|Open|Optimize|Pop|Push|Redo|Remove|Rename|
+        Reset|Resize|Search|Select|Set|Show|Skip|Split|Step|Switch|
+        Undo|Unlock|Watch|Backup|Checkpoint|Compare|Compress|Convert|
+        ConvertFrom|ConvertTo|Dismount|Edit|Expand|Export|Group|Import|
+        Initialize|Limit|Merge|Mount|Out|Publish|Restore|Save|Sync|
+        Unpublish|Update|Approve|Assert|Build|Complete|Confirm|Deny|
+        Deploy|Disable|Enable|Install|Invoke|Register|Request|Restart|
+        Resume|Start|Stop|Submit|Suspend|Uninstall|Unregister|Wait|
+        Debug|Measure|Ping|Repair|Resolve|Test|Trace|Connect|Disconnect|
+        Read|Receive|Send|Write|Block|Grant|Protect|Revoke|Unblock|
+        Unprotect|Use
+        )-[A-Za-z]+\b
+      </match>
+    </context>
+
+    <!-- Operators -->
+    <context id="operators" style-ref="operator">
+      <keyword>-eq</keyword>
+      <keyword>-ne</keyword>
+      <keyword>-gt</keyword>
+      <keyword>-ge</keyword>
+      <keyword>-lt</keyword>
+      <keyword>-le</keyword>
+      <keyword>-like</keyword>
+      <keyword>-notlike</keyword>
+      <keyword>-match</keyword>
+      <keyword>-notmatch</keyword>
+      <keyword>-contains</keyword>
+      <keyword>-notcontains</keyword>
+      <keyword>-in</keyword>
+      <keyword>-notin</keyword>
+      <keyword>-replace</keyword>
+      <keyword>-and</keyword>
+      <keyword>-or</keyword>
+      <keyword>-xor</keyword>
+      <keyword>-not</keyword>
+      <keyword>-band</keyword>
+      <keyword>-bor</keyword>
+      <keyword>-bxor</keyword>
+      <keyword>-bnot</keyword>
+      <keyword>-f</keyword>
+      <keyword>-as</keyword>
+      <keyword>-is</keyword>
+      <keyword>-isnot</keyword>
+      <keyword>-split</keyword>
+      <keyword>-join</keyword>
+    </context>
+
+    <!-- Arithmetic and other operators -->
+    <context id="arithmetic-operators" style-ref="operator">
+      <match>[\+\-\*/%]|\+\+|\-\-</match>
+    </context>
+
+    <context id="comparison-operators" style-ref="operator">
+      <match>-[ic]?(eq|ne|gt|ge|lt|le|like|notlike|match|notmatch|contains|notcontains|in|notin|replace)</match>
+    </context>
+
+    <context id="assignment-operators" style-ref="operator">
+      <match>=|\+=|\-=|\*=|/=|%=</match>
+    </context>
+
+    <!-- Numbers -->
+    <context id="number" style-ref="number">
+      <match extended="true">
+        \b(
+        [0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[dDfFlL]?|
+        [0-9]+[eE][+-]?[0-9]+[dDfFlL]?|
+        [0-9]+[dDfFlL]|
+        0[xX][0-9a-fA-F]+[lL]?|
+        [0-9]+[lL]?
+        )\b
+      </match>
+    </context>
+
+    <!-- Main context -->
+    <context id="powershell" class="no-spell-check">
+      <include>
+        <context ref="block-comment"/>
+        <context ref="line-comment"/>
+        <context ref="here-string-double"/>
+        <context ref="here-string-single"/>
+        <context ref="string-double"/>
+        <context ref="string-single"/>
+        <context ref="special-variable"/>
+        <context ref="variable"/>
+        <context ref="variable-braced"/>
+        <context ref="type-annotation"/>
+        <context ref="attribute"/>
+        <context ref="boolean"/>
+        <context ref="keywords"/>
+        <context ref="cmdlet"/>
+        <context ref="operators"/>
+        <context ref="arithmetic-operators"/>
+        <context ref="comparison-operators"/>
+        <context ref="assignment-operators"/>
+        <context ref="number"/>
+      </include>
+    </context>
+
+  </definitions>
+</language>

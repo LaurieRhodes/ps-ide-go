@@ -1,0 +1,2 @@
+	// Add right-click context menu for copy
+	widget.Connect("button-press-event", func(_ interface{}, event *gdk.Event) bool {

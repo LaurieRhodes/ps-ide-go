@@ -1,0 +1,37 @@
+func applyCss() {
+	cssProvider, _ := gtk.CssProviderNew()
+	css := `
+		notebook {
+			background-color: #FFFFCC;
+		}
+		notebook > header {
+			background-color: #FFFFCC;
+		}
+		notebook > header > tabs > tab {
+			background-color: #FFFFFF;
+			border: 1px solid #CCCCCC;
+			padding: 4px 8px;
+		}
+		notebook > header > tabs > tab:checked {
+			background-color: #FFFFFF;
+		}
+		textview {
+			font-family: monospace;
+			font-size: 11pt;
+		}
+		#statusbar {
+			background-color: #f0f0f0;
+			border-top: 1px solid #d0d0d0;
+			padding: 2px 5px;
+		}
+		#run-button-green image {
+			color: #00AA00;
+		}
+		#run-button-green {
+			color: #00AA00;
+		}
+	`
+	cssProvider.LoadFromData(css)
+	screen, _ := gdk.ScreenGetDefault()
+	gtk.AddProviderForScreen(screen, cssProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
+}

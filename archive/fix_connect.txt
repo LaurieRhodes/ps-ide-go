@@ -1,0 +1,24 @@
+	// Add right-click context menu for copy - use generic interface{} for first param
+	widget.Connect("button-press-event", func(_ interface{}, event *gdk.Event) bool {
+		btnEvent := gdk.EventButtonNewFromEvent(event)
+		if btnEvent.Button() == gdk.BUTTON_SECONDARY { // Right click
+			menu, _ := gtk.MenuNew()
+			
+			copyItem, _ := gtk.MenuItemNewWithLabel("Copy")
+			copyItem.Connect("activate", func() {
+				copyTerminalSelection()
+			})
+			menu.Append(copyItem)
+			
+			pasteItem, _ := gtk.MenuItemNewWithLabel("Paste")
+			pasteItem.Connect("activate", func() {
+				pasteToTerminal()
+			})
+			menu.Append(pasteItem)
+			
+			menu.ShowAll()
+			menu.PopupAtPointer(event)
+			return true
+		}
+		return false
+	})
