@@ -19,7 +19,7 @@ go.work
 .idea/
 *.swp
 *.swo
-*~
+
 
 # OS specific
 .DS_Store
