@@ -32,7 +32,9 @@ fi
 
 # Install GUI development dependencies
 echo "Installing GUI dependencies..."
-sudo apt install -y gcc libgl1-mesa-dev xorg-dev
+sudo apt install -y build-essential pkg-config \
+    libgtk-3-dev libglib2.0-dev libcairo2-dev \
+    libpango1.0-dev gcc libgl1-mesa-dev xorg-dev
 
 # Install Go dependencies
 echo "Installing Go module dependencies..."
@@ -42,5 +44,5 @@ go mod download
 echo -e "${GREEN}Installation complete!${NC}"
 echo ""
 echo "Next steps:"
-echo "1. Run: ./build.sh"
+echo "1. Run: go build -o ps-ide ./cmd/ps-ide"
 echo "2. Run: ./ps-ide"
