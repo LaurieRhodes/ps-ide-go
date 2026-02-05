@@ -24,10 +24,10 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       
-      - name: Install system dependencies (for Fyne)
+      - name: Install system dependencies (for GTK3)
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+          sudo apt-get install -y gcc pkg-config libgtk-3-dev libglib2.0-dev libcairo2-dev libpango1.0-dev
       
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -71,10 +71,10 @@ jobs:
         with:
           go-version: '1.23'
       
-      - name: Install system dependencies (for Fyne)
+      - name: Install system dependencies (for GTK3)
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+          sudo apt-get install -y gcc pkg-config libgtk-3-dev libglib2.0-dev libcairo2-dev libpango1.0-dev
       
       - name: Build
         run: go build -v ./cmd/ps-ide
@@ -96,10 +96,10 @@ jobs:
         with:
           go-version: '1.23'
       
-      - name: Install system dependencies (for Fyne)
+      - name: Install system dependencies (for GTK3)
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+          sudo apt-get install -y gcc pkg-config libgtk-3-dev libglib2.0-dev libcairo2-dev libpango1.0-dev
       
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
