@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-02-06
 
 ### Added
+
 - Chroma library integration for professional syntax highlighting
 - Support for 150+ programming languages (PowerShell default)
 - ChromaSyntaxHighlighter with grammar-based tokenization
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Snippets include: cmdlets, functions, classes, loops, error handling, etc.
 
 ### Changed
+
 - ScriptTab now uses SyntaxHighlighterInterface instead of concrete type
 - CreateSyntaxHighlighter() factory function for engine selection
 - Default font size increased from 9pt to 11pt
@@ -46,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global CSS modified to exclude console from generic textview rules
 
 ### Improved
+
 - Text rendering quality matches Windows PowerShell ISE
 - More vibrant syntax highlighting colors
 - Better font hinting and antialiasing
@@ -55,12 +58,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tab management superior to Windows PowerShell ISE
 
 ### Fixed
+
 - Console CSS priority conflicts resolved
 - TextTag colors properly applied with correct CSS specificity
 - Screen-level CSS properly excludes console textview
 - ANSI color codes brightened for visibility
 
 ### Maintained
+
 - Original regex-based highlighter available as fallback
 - Backward compatibility with existing functionality
 - Same performance characteristics for incremental updates
@@ -68,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All existing save prompts work with new tab closing features
 
 ### TODO
+
 - Implement multiple file tabs support
 - Add search and replace functionality
 - Implement keyboard shortcuts
@@ -81,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-05
 
 ### Added
+
 - Professional CI/CD pipeline with GitHub Actions
 - Automated multi-platform releases (Linux, Windows, macOS)
 - Comprehensive linting with golangci-lint
@@ -91,11 +98,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Version information in binary via ldflags
 
 ### Changed
+
 - Updated build process to include version and build time
 - Improved project structure and organization
 - Enhanced development tooling and workflows
 
 ### Infrastructure
+
 - GitHub Actions CI workflow for testing and linting
 - GitHub Actions Release workflow for automated releases
 - golangci-lint configuration
@@ -104,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-10-13
 
 ### Added
+
 - Initial project creation
 - Basic MVP implementation
 - Core packages: editor, executor, highlighter, ui, config
