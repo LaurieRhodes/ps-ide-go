@@ -24,9 +24,8 @@ A modern PowerShell IDE built with Go and GTK3, providing a lightweight and nati
 |----------|--------|-------|
 | **Linux** | ✅ **Fully Supported** | Native GTK3, optimized, one-liner install |
 | **macOS** | ⚠️ **Experimental** | Requires GTK3 via Homebrew, not native UI |
-| **Windows** | ⚠️ **Experimental** | Requires MSYS2 + GTK3 runtime, complex setup |
 
-> **Note:** PS-IDE-Go is designed primarily for Linux. While builds are provided for macOS and Windows, these platforms require additional setup and don't provide the native experience that Linux users enjoy. For v1.0.0, we recommend Linux for the best experience.
+> **Note:** PS-IDE-Go is designed primarily for Linux. While builds are provided for macOS, it requires additional setup and doesn't provide the native experience that Linux users enjoy. For v1.0.0, we recommend Linux for the best experience.
 
 ## Installation
 
@@ -112,54 +111,12 @@ sudo mv ps-ide /usr/local/bin/
 
 **Note:** GTK3 apps on macOS don't have native macOS look and feel. Consider using a native macOS PowerShell editor for better integration.
 
-### Windows (Experimental) ⚠️
-
-**Important:** Windows support is experimental and requires significant setup. For production PowerShell development on Windows, consider using [Visual Studio Code](https://code.visualstudio.com/) with the PowerShell extension or [Windows PowerShell ISE](https://docs.microsoft.com/powershell/scripting/windows-powershell/ise/introducing-the-windows-powershell-ise).
-
-**If you want to try PS-IDE-Go on Windows:**
-
-1. Install MSYS2 from https://www.msys2.org/
-
-2. In MSYS2 terminal:
-```bash
-# Update package database
-pacman -Syu
-
-# Install GTK3
-pacman -S mingw-w64-x86_64-gtk3
-
-# Install PowerShell (if not already installed)
-# Download from https://github.com/PowerShell/PowerShell
-```
-
-3. Download PS-IDE-Go:
-```bash
-# Download from GitHub releases
-wget https://github.com/LaurieRhodes/ps-ide-go/releases/latest/download/ps-ide-windows-amd64.zip
-
-# Extract
-unzip ps-ide-windows-amd64.zip
-```
-
-4. Run from MSYS2 terminal:
-```bash
-./ps-ide.exe
-```
-
-**Limitations on Windows:**
-- ❌ Requires MSYS2 environment (~200MB)
-- ❌ Not native Windows UI
-- ❌ No one-liner install
-- ❌ May have rendering issues
-- ❌ Not regularly tested on Windows
-
 ## Runtime Requirements
 
 | Platform | Required | Optional |
 |----------|----------|----------|
 | **Linux** | PowerShell, GTK3 runtime | - |
 | **macOS** | PowerShell, GTK3 (via Homebrew) | - |
-| **Windows** | PowerShell, MSYS2, GTK3 | - |
 
 **Recommended:** Use Linux for the best experience. PS-IDE-Go is designed and optimized for Linux systems.
 
@@ -209,15 +166,6 @@ brew install go powershell pkg-config gtk+3
 
 go mod download
 go build -o ps-ide ./cmd/ps-ide
-```
-
-**Windows (MSYS2):**
-```bash
-# In MSYS2 MINGW64 terminal
-pacman -S mingw-w64-x86_64-go mingw-w64-x86_64-gtk3 mingw-w64-x86_64-toolchain
-
-go mod download
-go build -o ps-ide.exe ./cmd/ps-ide
 ```
 
 ### Build Options
@@ -315,7 +263,7 @@ This project uses GitHub Actions for continuous integration and automated releas
   - Builds and verifies the binary
 
 - **Release Workflow** - Triggered by version tags
-  - Builds binaries for Linux (amd64, arm64), Windows (amd64), and macOS (amd64, arm64)
+  - Builds binaries for Linux (amd64, arm64) and macOS (amd64, arm64)
   - Creates GitHub Release with all binaries
   - Includes SHA256 checksums for verification
 
@@ -387,19 +335,6 @@ xattr -d com.apple.quarantine ps-ide
 brew install gtk+3
 ```
 
-### Windows
-
-#### Application doesn't start
-
-**Solution:** Ensure you're running from MSYS2 MINGW64 terminal, not Windows CMD or PowerShell.
-
-#### Missing DLLs
-
-**Solution:** Reinstall GTK3 in MSYS2:
-```bash
-pacman -S mingw-w64-x86_64-gtk3
-```
-
 ### Build Issues
 
 #### "C compiler not found"
@@ -429,11 +364,10 @@ xcode-select --install            # macOS
 - Community feedback integration
 
 ### v2.0 - Multi-Platform
-- Native Windows UI (Win32 or WinUI3)
 - Native macOS UI (SwiftUI or Cocoa)
 - Or: Cross-platform rewrite with Electron/Tauri
 
-> **Note:** The current GTK3 implementation works excellently on Linux but has significant limitations on Windows and macOS. Future versions may use platform-native UI frameworks for better experience on all platforms.
+> **Note:** The current GTK3 implementation works excellently on Linux but has limitations on macOS. Future versions may use platform-native UI frameworks for better experience on all platforms.
 
 ## Roadmap
 
@@ -449,7 +383,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-**Development Environment:** We primarily develop and test on Linux. Contributions improving macOS and Windows support are especially welcome!
+**Development Environment:** We primarily develop and test on Linux. Contributions improving macOS support are especially welcome!
 
 ## License
 
@@ -469,4 +403,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Optimized for Linux.** Windows and macOS support is experimental.
+**Optimized for Linux.** macOS support is experimental.

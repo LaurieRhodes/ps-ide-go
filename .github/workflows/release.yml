@@ -28,13 +28,6 @@ jobs:
             binary_name: ps-ide
             asset_name: ps-ide-linux-arm64
           
-          # Windows builds
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
-            binary_name: ps-ide.exe
-            asset_name: ps-ide-windows-amd64.exe
-          
           # macOS builds
           - os: macos-latest
             goos: darwin
@@ -89,36 +82,18 @@ jobs:
             -o ${{ matrix.binary_name }} \
             ./cmd/ps-ide
 
-      - name: Create tarball (Unix)
-        if: matrix.goos != 'windows'
+      - name: Create tarball
         run: |
           tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.binary_name }}
           sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
 
-      - name: Create zip (Windows)
-        if: matrix.goos == 'windows'
-        run: |
-          7z a ${{ matrix.asset_name }}.zip ${{ matrix.binary_name }}
-          # PowerShell equivalent of sha256sum
-          Get-FileHash ${{ matrix.asset_name }}.zip -Algorithm SHA256 | ForEach-Object { $_.Hash + "  " + $_.Path.Split("\")[-1] } | Out-File -Encoding ASCII ${{ matrix.asset_name }}.zip.sha256
-
-      - name: Upload artifacts (Unix)
-        if: matrix.goos != 'windows'
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
           path: |
             ${{ matrix.asset_name }}.tar.gz
             ${{ matrix.asset_name }}.tar.gz.sha256
-
-      - name: Upload artifacts (Windows)
-        if: matrix.goos == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.asset_name }}
-          path: |
-            ${{ matrix.asset_name }}.zip
-            ${{ matrix.asset_name }}.zip.sha256
 
   release:
     name: Create GitHub Release
@@ -148,7 +123,7 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release-assets/ \;
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.sha256" \) -exec cp {} release-assets/ \;
           ls -lh release-assets/
 
       - name: Generate release notes
@@ -162,22 +137,15 @@ jobs:
           
           - **Linux (x64)**: `ps-ide-linux-amd64.tar.gz`
           - **Linux (ARM64)**: `ps-ide-linux-arm64.tar.gz`
-          - **Windows (x64)**: `ps-ide-windows-amd64.exe.zip`
           - **macOS (Intel)**: `ps-ide-darwin-amd64.tar.gz`
           - **macOS (Apple Silicon)**: `ps-ide-darwin-arm64.tar.gz`
 
           ### Installation
           
-          **Linux/macOS:**
           ```bash
           tar xzf ps-ide-*.tar.gz
           chmod +x ps-ide
           sudo mv ps-ide /usr/local/bin/
-          ```
-
-          **Windows:**
-          ```powershell
-          # Extract zip and add to PATH
           ```
 
           ### Verification
@@ -206,7 +174,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Built Binaries:" >> $GITHUB_STEP_SUMMARY
           echo "- Linux (x64, ARM64)" >> $GITHUB_STEP_SUMMARY
-          echo "- Windows (x64)" >> $GITHUB_STEP_SUMMARY
           echo "- macOS (Intel, Apple Silicon)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "View release: https://github.com/LaurieRhodes/ps-ide-go/releases/tag/${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
