@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"unsafe"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
@@ -13,7 +12,8 @@ import (
 var (
 	statusLabel    *gtk.Label
 	cursorPosLabel *gtk.Label
-	notebook       *gtk.Notebook
+	contentStack   *gtk.Stack         // Holds editor content pages
+	stackSwitcher  *gtk.StackSwitcher // Tab bar
 	tabCounter     int
 	runButton      *gtk.ToolButton
 	cutButton      *gtk.ToolButton
@@ -27,15 +27,24 @@ var (
 	zoomScale      *gtk.Scale
 	zoomLabel      *gtk.Label
 	currentZoom    float64 = 100.0
+
+	// Command Add-On
+	commandDatabase          *CommandDatabase
+	commandAddOnPane         *gtk.Paned
+	commandAddOnVisible      bool = false
+	showCommandAddonMenuItem *gtk.CheckMenuItem
+	updatingCommandAddonMenu bool = false // Flag to prevent signal loops
 )
 
 type ScriptTab struct {
-	textView    *gtk.TextView
-	buffer      *gtk.TextBuffer
-	undoStack   *UndoStack
-	filename    string
-	modified    bool
-	lineNumView *LineNumberView
+	textView          *gtk.TextView
+	buffer            *gtk.TextBuffer
+	undoStack         *UndoStack
+	filename          string
+	modified          bool
+	lineNumView       *LineNumberView
+	syntaxHighlighter SyntaxHighlighterInterface
+	tabID             int // Unique, stable ID for this tab
 }
 
 var openTabs []*ScriptTab
@@ -44,6 +53,9 @@ func main() {
 	gtk.Init(nil)
 	tabCounter = 1
 
+	// Setup optimal font rendering for crisp, clear text
+	SetupFontRendering()
+
 	win, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 	if err != nil {
 		log.Fatal("Unable to create window:", err)
@@ -51,10 +63,10 @@ func main() {
 	mainWindow = win
 	win.SetTitle("PS-IDE-Go - PowerShell ISE")
 	win.SetDefaultSize(1000, 750)
-	
+
 	// Set PowerShell icon
 	setWindowIcon(win)
-	
+
 	// Save session on window close
 	win.Connect("destroy", func() {
 		saveSession()
@@ -69,40 +81,43 @@ func main() {
 	applyCss()
 
 	mainVBox, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
-	
+
 	// Menu bar
 	menuBar := createMenuBar(win)
-	menuBar.SetVExpand(false)  // Don't expand vertically
+	menuBar.SetVExpand(false) // Don't expand vertically
 	mainVBox.PackStart(menuBar, false, false, 0)
 
 	// Toolbar
 	toolbar := createToolbar()
-	toolbar.SetVExpand(false)  // Don't expand vertically
+	toolbar.SetVExpand(false) // Don't expand vertically
 	mainVBox.PackStart(toolbar, false, false, 0)
-	
-	fmt.Println("DEBUG: Menu and toolbar added")
 
-	// Notebook for script tabs
-	notebook, _ = gtk.NotebookNew()
-	notebook.SetScrollable(true)
-	notebook.SetShowTabs(true)  // Explicitly show tabs
-	notebook.SetShowBorder(true) // Show border for visibility
-	notebook.SetVExpand(true)    // Allow vertical expansion
-	notebook.SetHExpand(true)    // Allow horizontal expansion
-	notebook.Connect("switch-page", func() {
-		onTabSwitch()
-	})
-	fmt.Println("DEBUG: Notebook created and configured")
+	// Create Stack for editor content pages
+	contentStack, _ = gtk.StackNew()
+	contentStack.SetTransitionType(gtk.STACK_TRANSITION_TYPE_NONE)
+	contentStack.SetVExpand(true)
+	contentStack.SetHExpand(true)
+
+	// Force homogeneous sizing to prevent children from requesting different sizes
+	contentStack.Set("hhomogeneous", true)
+	contentStack.Set("vhomogeneous", true)
+
+	// Create StackSwitcher for tabs
+	stackSwitcher, _ = gtk.StackSwitcherNew()
+	stackSwitcher.SetStack(contentStack)
+	stackSwitcher.SetVExpand(false)
+	stackSwitcher.SetHExpand(true)
+
+	// Add tab bar (StackSwitcher) to main layout - stays fixed
+	mainVBox.PackStart(stackSwitcher, false, false, 0)
 
 	// Try to load previous session, if fails create default tab
 	if !loadSession() {
 		createNewTab()
 	}
-	
-	// Debug: Check notebook state
-	numPages := notebook.GetNPages()
-	showTabs := notebook.GetShowTabs()
-	fmt.Printf("DEBUG: Notebook has %d pages, showTabs=%v\n", numPages, showTabs)
+
+	// Setup tab click handlers for middle-click and right-click
+	setupTabClickHandlers()
 
 	// Create PowerShell console using Translation Layer
 	consoleScroll, consoleErr := createConsoleUI()
@@ -116,24 +131,38 @@ func main() {
 		log.Println("PowerShell functionality will be limited")
 	}
 
-	// Split pane layout (editor top, console bottom)
+	// Split pane layout (editor content top, console bottom)
 	paned, _ := gtk.PanedNew(gtk.ORIENTATION_VERTICAL)
-	paned.Pack1(notebook, true, false)  // notebook resizable but NOT shrinkable
-	paned.Pack2(consoleScroll, true, true)  // console resizable and shrinkable
-	paned.SetWideHandle(true)  // Make divider easier to grab
-	
-	// Ensure notebook has minimum size
-	notebook.SetSizeRequest(-1, 250)  // Minimum 250px height to ensure tabs visible
-	
-	fmt.Printf("DEBUG: Paned created\n")
-	
-	mainVBox.PackStart(paned, true, true, 0)
-	
+	paned.Pack1(contentStack, true, true)  // Stack content resizable and shrinkable
+	paned.Pack2(consoleScroll, true, true) // console resizable and shrinkable
+	paned.SetWideHandle(true)              // Make divider easier to grab
+
+	// Set minimum sizes
+	contentStack.SetSizeRequest(-1, 150)
+	consoleScroll.SetSizeRequest(-1, 150)
+
+	// Create horizontal paned for command add-on (editor+console | command-addon)
+	commandAddOnPane, _ = gtk.PanedNew(gtk.ORIENTATION_HORIZONTAL)
+	commandAddOnPane.SetWideHandle(true)
+	commandAddOnPane.Pack1(paned, true, false) // Main content: resize=true, shrink=false
+
+	// Initialize command database first
+	commandDatabase = NewCommandDatabase()
+
+	// Create and add command add-on
+	commandAddOn = createCommandAddOn(commandDatabase)
+	commandAddOnPane.Pack2(commandAddOn.container, true, true) // Add-on: resize=true, shrink=true (allows width resize and shrinking)
+	commandAddOn.container.SetSizeRequest(200, -1)             // Minimum width (smaller)
+	commandAddOn.container.Hide()                              // Hidden by default
+
+	mainVBox.PackStart(commandAddOnPane, true, true, 0)
+
 	// Set paned position AFTER adding to mainVBox (important!)
 	// Use GLib idle to set position after window is realized
-	paned.SetPosition(400)  // Initial position: 400px for editor
-	
-	fmt.Printf("DEBUG: Paned position set to 400\n")
+	paned.SetPosition(400) // Initial position: 400px for editor
+
+	// Initialize command database in background
+	initializeCommandAddOn()
 
 	// Status bar
 	statusBar := createStatusBar()
@@ -141,6 +170,34 @@ func main() {
 
 	win.Add(mainVBox)
 	win.ShowAll()
+
+	// Hide Command Add-On after ShowAll (ShowAll shows everything)
+	if commandAddOn != nil && !pendingCommandAddOnShow {
+		commandAddOn.container.Hide()
+	}
+
+	// Restore Command Add-On visibility and position after window is shown
+	glib.IdleAdd(func() {
+		if pendingCommandAddOnShow && commandAddOn != nil {
+			commandAddOn.container.ShowAll()
+			commandAddOnVisible = true
+			// Restore paned position if saved
+			if pendingCommandAddOnWidth > 0 && commandAddOnPane != nil {
+				commandAddOnPane.SetPosition(pendingCommandAddOnWidth)
+			}
+		} else if commandAddOn != nil {
+			// Ensure it's hidden and set a default paned position for when it's shown later
+			commandAddOn.container.Hide()
+			commandAddOnVisible = false
+		}
+
+		// Sync menu checkbox with actual state (without triggering signal)
+		if showCommandAddonMenuItem != nil {
+			updatingCommandAddonMenu = true
+			showCommandAddonMenuItem.SetActive(commandAddOnVisible)
+			updatingCommandAddonMenu = false
+		}
+	})
 
 	gtk.Main()
 }
@@ -161,10 +218,10 @@ func setWindowIcon(win *gtk.Window) {
 		for x := 0; x < 48; x++ {
 			offset := y*rowstride + x*nChannels
 			// PowerShell blue color
-			pixels[offset] = 0x01     // R
-			pixels[offset+1] = 0x24   // G
-			pixels[offset+2] = 0x56   // B
-			pixels[offset+3] = 0xFF   // A
+			pixels[offset] = 0x01   // R
+			pixels[offset+1] = 0x24 // G
+			pixels[offset+2] = 0x56 // B
+			pixels[offset+3] = 0xFF // A
 		}
 	}
 
@@ -231,6 +288,22 @@ func onKeyPress(_ interface{}, event *gdk.Event) bool {
 		redoText()
 		return true
 	}
+	if ctrl && keyval == gdk.KEY_w {
+		closeCurrentTab()
+		return true
+	}
+	if ctrl && keyval == gdk.KEY_F4 {
+		closeCurrentTab()
+		return true
+	}
+	if ctrl && keyval == gdk.KEY_f {
+		showFindDialog()
+		return true
+	}
+	if ctrl && keyval == gdk.KEY_j {
+		showSnippetsDialog()
+		return true
+	}
 	if keyval == gdk.KEY_F5 {
 		runScript()
 		return true
@@ -246,6 +319,35 @@ func onKeyPress(_ interface{}, event *gdk.Event) bool {
 func applyCss() {
 	cssProvider, _ := gtk.CssProviderNew()
 	css := `
+		/* Make scrollbars thinner like Windows ISE */
+		scrollbar {
+			min-width: 14px;
+			min-height: 14px;
+		}
+		scrollbar slider {
+			min-width: 12px;
+			min-height: 12px;
+		}
+		
+		stackswitcher {
+			background-color: #F5F0E8;
+			border-bottom: 1px solid #CCCCCC;
+			padding: 2px;
+		}
+		stackswitcher > button {
+			background-color: #CCCCCC;
+			border: 1px solid #999999;
+			border-bottom: none;
+			padding: 3px 10px;
+			margin-right: 1px;
+			min-height: 22px;
+			font-size: 8.5pt;
+		}
+		stackswitcher > button:checked {
+			background-color: #FFFFFF;
+			border-bottom: 1px solid #FFFFFF;
+			font-weight: normal;
+		}
 		notebook {
 			background-color: #F5F0E8;
 		}
@@ -264,11 +366,23 @@ func applyCss() {
 			background-color: #FFFFFF;
 			border-bottom: 1px solid #FFFFFF;
 		}
-		textview {
+		textview:not(.console-textview) {
 			font-family: "Lucida Console", "Courier New", monospace;
 			font-size: 9pt;
 			background-color: #FFFFFF;
 			padding: 3px;
+		}
+		textview.console-textview {
+			background-color: #012456;
+			color: #FFFFFF;
+			font-family: "Consolas", "Liberation Mono", "Courier New", monospace;
+			font-size: 11pt;
+			padding: 5px;
+			caret-color: #FFFFFF;
+		}
+		textview.console-textview text {
+			background-color: #012456;
+			color: #FFFFFF;
 		}
 		#statusbar {
 			background-color: #F0F0F0;
@@ -287,6 +401,28 @@ func applyCss() {
 		menu {
 			background-color: #F5F5F5;
 		}
+		/* Command Add-On parameter set tabs (FlowBox toggle buttons) */
+		flowbox {
+			background-color: transparent;
+		}
+		flowbox flowboxchild {
+			padding: 1px;
+		}
+		flowbox togglebutton {
+			background-color: #E0E0E0;
+			border: 1px solid #999999;
+			padding: 4px 8px;
+			min-height: 20px;
+			font-size: 8pt;
+		}
+		flowbox togglebutton:checked {
+			background-color: #FFFFFF;
+			border-color: #666666;
+			font-weight: bold;
+		}
+		flowbox togglebutton:hover {
+			background-color: #F0F0F0;
+		}
 	`
 	cssProvider.LoadFromData(css)
 	screen, _ := gdk.ScreenGetDefault()
@@ -302,11 +438,48 @@ func onTabSwitch() {
 }
 
 func getCurrentTab() *ScriptTab {
-	pageNum := notebook.GetCurrentPage()
-	if pageNum == -1 || pageNum >= len(openTabs) {
+	// Get the visible child name from Stack
+	visibleName := contentStack.GetVisibleChildName()
+	if visibleName == "" {
 		return nil
 	}
-	return openTabs[pageNum]
+
+	// Parse the tab ID from the name (format: "tab-ID")
+	var tabID int
+	_, err := fmt.Sscanf(visibleName, "tab-%d", &tabID)
+	if err != nil {
+		return nil
+	}
+
+	// Find tab with matching ID
+	for _, tab := range openTabs {
+		if tab.tabID == tabID {
+			return tab
+		}
+	}
+
+	return nil
+}
+
+func updateTabTitle(tab *ScriptTab) {
+	if tab == nil {
+		return
+	}
+
+	pageName := fmt.Sprintf("tab-%d", tab.tabID)
+	title := fmt.Sprintf("Untitled%d.ps1", tab.tabID)
+	if tab.filename != "" {
+		title = getBaseName(tab.filename)
+	}
+	if tab.modified {
+		title = "* " + title
+	}
+
+	// Update the Stack child's title
+	child, err := contentStack.GetChildByName(pageName)
+	if err == nil && child != nil {
+		contentStack.ChildSetProperty(child.ToWidget(), "title", title)
+	}
 }
 
 func createStatusBar() *gtk.Box {
@@ -348,54 +521,75 @@ func createStatusBar() *gtk.Box {
 
 func applyZoom(zoomPercent float64) {
 	currentZoom = zoomPercent
-	baseFontSize := 9.0
-	newFontSize := baseFontSize * (zoomPercent / 100.0)
+	fontSize := DefaultFontSize * (zoomPercent / 100.0)
 
 	for _, tab := range openTabs {
 		if tab.textView != nil {
-			provider, _ := gtk.CssProviderNew()
-			css := fmt.Sprintf(`textview { 
-				font-family: "Lucida Console", "Courier New", monospace; 
-				font-size: %.1fpt; 
-				background-color: #FFFFFF;
-				padding: 3px;
-			}`, newFontSize)
-			provider.LoadFromData(css)
-			styleContext, _ := tab.textView.GetStyleContext()
-			styleContext.AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_USER)
+			// Apply enhanced font rendering
+			if err := ApplyEditorStyling(tab.textView, fontSize); err != nil {
+				// Fallback to old method
+				provider, _ := gtk.CssProviderNew()
+				css := fmt.Sprintf(`textview { 
+					font-family: "Lucida Console", "Courier New", monospace; 
+					font-size: %.1fpt; 
+					background-color: #FFFFFF;
+					padding: 3px;
+				}`, fontSize)
+				provider.LoadFromData(css)
+				styleContext, _ := tab.textView.GetStyleContext()
+				styleContext.AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_USER)
+			}
 			tab.textView.QueueDraw()
 		}
-		
+
 		// Also update line numbers when zooming
 		if tab.lineNumView != nil && tab.lineNumView.textView != nil {
 			provider, _ := gtk.CssProviderNew()
 			css := fmt.Sprintf(`textview { 
-				font-family: "Lucida Console", "Courier New", monospace; 
+				font-family: %s; 
 				font-size: %.1fpt; 
 				background-color: #F0F0F0;
-				color: #808080;
 				padding: 3px;
-			}`, newFontSize)
+				border-right: 1px solid #D0D0D0;
+			}
+			textview text {
+				color: #2B91AF;
+			}`, DefaultFontFamily, fontSize)
 			provider.LoadFromData(css)
 			styleContext, _ := tab.lineNumView.textView.GetStyleContext()
 			styleContext.AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 			tab.lineNumView.textView.QueueDraw()
 		}
+
+		// Update syntax highlighting after zoom
+		if tab.syntaxHighlighter != nil {
+			tab.syntaxHighlighter.UpdateZoom()
+		}
 	}
 
 	if consoleTextView != nil {
-		consoleFontSize := 10.0 * (zoomPercent / 100.0)
+		consoleFontSize := DefaultFontSize * (zoomPercent / 100.0) // Same as editor
 		provider, _ := gtk.CssProviderNew()
-		css := fmt.Sprintf(`textview {
-			background-color: #012456;
-			color: #FFFFFF;
+		css := fmt.Sprintf(`textview.console-textview {
+			background-color: #012456 !important;
+			color: #FFFFFF !important;
 			font-family: "Courier New", "Lucida Console", monospace;
 			font-size: %.1fpt;
+			font-weight: normal;
 			padding: 5px;
+			caret-color: #FFFFFF;
+		}
+		textview.console-textview text {
+			background-color: #012456 !important;
+			color: #FFFFFF !important;
+		}
+		textview.console-textview:selected {
+			background-color: #0066CC;
 		}`, consoleFontSize)
 		provider.LoadFromData(css)
 		styleContext, _ := consoleTextView.GetStyleContext()
-		styleContext.AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+		// Use priority 900 (higher than USER 800) to override global screen CSS
+		styleContext.AddProvider(provider, 900)
 		consoleTextView.QueueDraw()
 	}
 }
@@ -457,42 +651,73 @@ func getBaseName(path string) string {
 	return path
 }
 
-func updateTabLabelText(pageNum int) {
-	if pageNum < 0 || pageNum >= len(openTabs) {
-		return
-	}
+// initializeCommandAddOn initializes the command database and add-on
+func initializeCommandAddOn() {
+	log.Println("Initializing Command Add-On...")
 
-	tab := openTabs[pageNum]
-	page, _ := notebook.GetNthPage(pageNum)
-	if page == nil {
-		return
-	}
-
-	tabLabelWidget, _ := notebook.GetTabLabel(page)
-	if tabLabelWidget == nil {
-		return
-	}
-
-	widget := tabLabelWidget.ToWidget()
-	if widget == nil {
-		return
-	}
-
-	obj := glib.Take(unsafe.Pointer(widget.Native()))
-	box := &gtk.Box{gtk.Container{gtk.Widget{glib.InitiallyUnowned{obj}}}}
-	children := box.GetChildren()
-	if children != nil {
-		labelWidget := children.Data().(*gtk.Widget)
-		obj2 := glib.Take(unsafe.Pointer(labelWidget.Native()))
-		label := &gtk.Label{gtk.Widget{glib.InitiallyUnowned{obj2}}}
-
-		title := fmt.Sprintf("Untitled%d.ps1", pageNum+1)
-		if tab.filename != "" {
-			title = getBaseName(tab.filename)
+	// Load help files in background (database already created)
+	go func() {
+		log.Println("Loading PowerShell help files...")
+		err := commandDatabase.LoadHelp()
+		if err != nil {
+			log.Printf("Error loading help: %v", err)
 		}
-		if tab.modified {
-			title = "* " + title
+
+		// Also load from PowerShell to get all commands
+		log.Println("Loading commands from PowerShell...")
+		err = commandDatabase.LoadFromPowerShell()
+		if err != nil {
+			log.Printf("Error loading from PowerShell: %v", err)
 		}
-		label.SetText(title)
+
+		// Update UI on main thread
+		glib.IdleAdd(func() {
+			if commandAddOn != nil {
+				commandAddOn.loadModules()
+				commandAddOn.updateCommandList()
+			}
+		})
+	}()
+}
+
+// toggleCommandAddOn shows/hides the command add-on pane
+func toggleCommandAddOn() {
+	if commandAddOn == nil {
+		return
+	}
+
+	// Prevent recursive calls from menu signal
+	if updatingCommandAddonMenu {
+		return
+	}
+
+	if commandAddOnVisible {
+		// Hide the command add-on
+		commandAddOn.container.Hide()
+		commandAddOnVisible = false
+	} else {
+		// Show the command add-on
+		commandAddOn.container.ShowAll()
+		commandAddOnVisible = true
+
+		// Set default width to ~20% of window (position is left edge of addon)
+		if commandAddOnPane != nil {
+			winWidth, _ := mainWindow.GetSize()
+			defaultAddonWidth := winWidth / 4 // 25% for addon, so position is 75%
+			commandAddOnPane.SetPosition(winWidth - defaultAddonWidth)
+		}
+
+		// Load data if not loaded yet
+		if commandDatabase != nil && !commandDatabase.IsLoaded() {
+			commandAddOn.loadModules()
+			commandAddOn.updateCommandList()
+		}
+	}
+
+	// Sync menu checkbox state
+	if showCommandAddonMenuItem != nil {
+		updatingCommandAddonMenu = true
+		showCommandAddonMenuItem.SetActive(commandAddOnVisible)
+		updatingCommandAddonMenu = false
 	}
 }

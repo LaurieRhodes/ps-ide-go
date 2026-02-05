@@ -29,12 +29,12 @@ type CLIXMLObjs struct {
 }
 
 type CLIXMLObj struct {
-	RefID    string      `xml:"RefId,attr"`
-	TypeName []string    `xml:"TN>T"`
-	ToString string      `xml:"ToString"`
+	RefID    string       `xml:"RefId,attr"`
+	TypeName []string     `xml:"TN>T"`
+	ToString string       `xml:"ToString"`
 	Props    []CLIXMLProp `xml:"Props>*"`
 	MS       []CLIXMLProp `xml:"MS>*"`
-	S        string      `xml:"S,attr"` // Stream attribute
+	S        string       `xml:"S,attr"` // Stream attribute
 }
 
 type CLIXMLProp struct {
@@ -46,15 +46,15 @@ type CLIXMLProp struct {
 // Parse parses CLIXML data and returns structured output
 func (op *OutputParser) Parse(xmlData []byte) ([]PSOutput, error) {
 	DebugLog("Parser.Parse called with %d bytes of data", len(xmlData))
-	
+
 	// Handle empty input
 	if len(xmlData) == 0 {
 		DebugLog("Parser.Parse: empty input, returning empty result")
 		return []PSOutput{}, nil
 	}
-	
+
 	DebugLogRaw("XML INPUT", string(xmlData))
-	
+
 	// Try to parse as CLIXML
 	var objs CLIXMLObjs
 	if err := xml.Unmarshal(xmlData, &objs); err != nil {
@@ -64,9 +64,9 @@ func (op *OutputParser) Parse(xmlData []byte) ([]PSOutput, error) {
 		DebugLog("Parser.Parse: parsed as plain text, %d output objects", len(results))
 		return results, nil
 	}
-	
+
 	DebugLog("Parser.Parse: successfully parsed XML with %d objects", len(objs.Objects))
-	
+
 	// Convert CLIXML objects to PSOutput
 	var results []PSOutput
 	for i, obj := range objs.Objects {
@@ -74,7 +74,7 @@ func (op *OutputParser) Parse(xmlData []byte) ([]PSOutput, error) {
 		output := op.convertObject(obj)
 		results = append(results, output)
 	}
-	
+
 	DebugLog("Parser.Parse: complete, returning %d PSOutput objects", len(results))
 	return results, nil
 }
@@ -83,7 +83,7 @@ func (op *OutputParser) Parse(xmlData []byte) ([]PSOutput, error) {
 func (op *OutputParser) convertObject(obj CLIXMLObj) PSOutput {
 	stream := op.determineStream(obj)
 	DebugLog("convertObject: determined stream type: %v for S attribute: %q", stream, obj.S)
-	
+
 	output := PSOutput{
 		Stream:       stream,
 		Content:      obj.ToString,
@@ -92,7 +92,7 @@ func (op *OutputParser) convertObject(obj CLIXMLObj) PSOutput {
 		IsFormatted:  false,
 		Timestamp:    time.Now(),
 	}
-	
+
 	// Parse ANSI codes if present in ToString
 	if obj.ToString != "" {
 		output.ANSISegments = op.ParseANSI(obj.ToString)
@@ -101,7 +101,7 @@ func (op *OutputParser) convertObject(obj CLIXMLObj) PSOutput {
 			DebugLog("convertObject: found %d ANSI segments in content", len(output.ANSISegments))
 		}
 	}
-	
+
 	return output
 }
 
@@ -139,9 +139,9 @@ func (op *OutputParser) ParseANSI(text string) []ANSISegment {
 			Italic:    false,
 		}}
 	}
-	
+
 	DebugLog("ParseANSI: parsing text with ANSI codes, length=%d", len(text))
-	
+
 	var segments []ANSISegment
 	currentSegment := ANSISegment{
 		FGColor:   37,
@@ -150,12 +150,12 @@ func (op *OutputParser) ParseANSI(text string) []ANSISegment {
 		Underline: false,
 		Italic:    false,
 	}
-	
+
 	// Split by ANSI codes
 	matches := op.ansiRegex.FindAllStringSubmatchIndex(text, -1)
 	DebugLog("ParseANSI: found %d ANSI code matches", len(matches))
 	lastEnd := 0
-	
+
 	for i, match := range matches {
 		// Add text before this code
 		if match[0] > lastEnd {
@@ -165,16 +165,16 @@ func (op *OutputParser) ParseANSI(text string) []ANSISegment {
 				DebugLog("ParseANSI: added segment %d with text: %q", len(segments)-1, currentSegment.Text)
 			}
 		}
-		
+
 		// Parse the ANSI code
 		codeStr := text[match[2]:match[3]]
 		codes := strings.Split(codeStr, ";")
 		DebugLog("ParseANSI: match %d, codes=%v", i, codes)
 		currentSegment = op.applyANSICodes(currentSegment, codes)
-		
+
 		lastEnd = match[1]
 	}
-	
+
 	// Add remaining text
 	if lastEnd < len(text) {
 		currentSegment.Text = text[lastEnd:]
@@ -183,7 +183,7 @@ func (op *OutputParser) ParseANSI(text string) []ANSISegment {
 			DebugLog("ParseANSI: added final segment with text: %q", currentSegment.Text)
 		}
 	}
-	
+
 	DebugLog("ParseANSI: complete, %d segments total", len(segments))
 	return segments
 }
@@ -285,16 +285,16 @@ func (op *OutputParser) applyANSICodes(segment ANSISegment, codes []string) ANSI
 // parsePlainText handles non-XML output as plain text
 func (op *OutputParser) parsePlainText(text string) []PSOutput {
 	DebugLog("parsePlainText: parsing %d bytes as plain text", len(text))
-	
+
 	// Split by lines and create output for each
 	lines := strings.Split(text, "\n")
 	var results []PSOutput
-	
+
 	for i, line := range lines {
 		if line == "" {
 			continue
 		}
-		
+
 		output := PSOutput{
 			Stream:       OutputStream,
 			Content:      line,
@@ -303,11 +303,11 @@ func (op *OutputParser) parsePlainText(text string) []PSOutput {
 			IsFormatted:  strings.Contains(line, "\x1b["),
 			Timestamp:    time.Now(),
 		}
-		
+
 		results = append(results, output)
 		DebugLog("parsePlainText: added line %d: %q", i, line)
 	}
-	
+
 	DebugLog("parsePlainText: complete, %d output objects", len(results))
 	return results
 }
@@ -317,13 +317,13 @@ func (op *OutputParser) FormatOutput(output PSOutput) string {
 	if !output.IsFormatted {
 		return output.Content
 	}
-	
+
 	// Build plain text from segments
 	var builder strings.Builder
 	for _, segment := range output.ANSISegments {
 		builder.WriteString(segment.Text)
 	}
-	
+
 	result := builder.String()
 	DebugLog("FormatOutput: formatted content (length=%d): %q", len(result), result)
 	return result
@@ -334,13 +334,13 @@ func (op *OutputParser) FormatWithANSI(output PSOutput) string {
 	if !output.IsFormatted {
 		return output.Content
 	}
-	
+
 	var builder strings.Builder
-	
+
 	for i, segment := range output.ANSISegments {
 		// Build ANSI code
 		var codes []string
-		
+
 		if segment.Bold {
 			codes = append(codes, "1")
 		}
@@ -350,22 +350,22 @@ func (op *OutputParser) FormatWithANSI(output PSOutput) string {
 		if segment.Italic {
 			codes = append(codes, "3")
 		}
-		
+
 		// Add color codes
 		codes = append(codes, fmt.Sprintf("%d", segment.FGColor))
 		if segment.BGColor != 40 { // Only add background if not default
 			codes = append(codes, fmt.Sprintf("%d", segment.BGColor))
 		}
-		
+
 		// Write ANSI sequence and text
 		formatted := fmt.Sprintf("\x1b[%sm%s\x1b[0m", strings.Join(codes, ";"), segment.Text)
 		builder.WriteString(formatted)
-		
+
 		if IsDebugEnabled() {
 			DebugLog("FormatWithANSI: segment %d: codes=%v, text=%q", i, codes, segment.Text)
 		}
 	}
-	
+
 	return builder.String()
 }
 

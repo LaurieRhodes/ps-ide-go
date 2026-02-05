@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
-	
+
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/laurie/ps-ide-go/cmd/ps-ide/translation"
 )
@@ -22,21 +22,51 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 	openItem, _ := gtk.MenuItemNewWithLabel("Open...")
 	saveItem, _ := gtk.MenuItemNewWithLabel("Save")
 	saveAsItem, _ := gtk.MenuItemNewWithLabel("Save As...")
+	fileSep1, _ := gtk.SeparatorMenuItemNew()
+	runFileItem, _ := gtk.MenuItemNewWithLabel("Run")
+	runFileSelectionItem, _ := gtk.MenuItemNewWithLabel("Run Selection")
+	fileSep2, _ := gtk.SeparatorMenuItemNew()
+	closeItem, _ := gtk.MenuItemNewWithLabel("Close")
+	fileSep3, _ := gtk.SeparatorMenuItemNew()
+	newPSTabItem, _ := gtk.MenuItemNewWithLabel("New PowerShell Tab")
+	closePSTabItem, _ := gtk.MenuItemNewWithLabel("Close PowerShell Tab")
+	fileSep4, _ := gtk.SeparatorMenuItemNew()
+	newRemotePSTabItem, _ := gtk.MenuItemNewWithLabel("New Remote PowerShell Tab...")
+	fileSep5, _ := gtk.SeparatorMenuItemNew()
 	exitItem, _ := gtk.MenuItemNewWithLabel("Exit")
 
 	fileMenu.Append(newItem)
 	fileMenu.Append(openItem)
 	fileMenu.Append(saveItem)
 	fileMenu.Append(saveAsItem)
-	sep1, _ := gtk.SeparatorMenuItemNew()
-	fileMenu.Append(sep1)
+	fileMenu.Append(fileSep1)
+	fileMenu.Append(runFileItem)
+	fileMenu.Append(runFileSelectionItem)
+	fileMenu.Append(fileSep2)
+	fileMenu.Append(closeItem)
+	fileMenu.Append(fileSep3)
+	fileMenu.Append(newPSTabItem)
+	fileMenu.Append(closePSTabItem)
+	fileMenu.Append(fileSep4)
+	fileMenu.Append(newRemotePSTabItem)
+	fileMenu.Append(fileSep5)
 	fileMenu.Append(exitItem)
 
-	exitItem.Connect("activate", func() { gtk.MainQuit() })
 	newItem.Connect("activate", func() { newScript() })
+	openItem.Connect("activate", func() { openScript(win) })
 	saveItem.Connect("activate", func() { saveScript(win) })
 	saveAsItem.Connect("activate", func() { saveScriptAs(win) })
-	openItem.Connect("activate", func() { openScript(win) })
+	runFileItem.Connect("activate", func() { runScript() })
+	runFileSelectionItem.Connect("activate", func() { runSelection() })
+	closeItem.Connect("activate", func() { closeCurrentTab() })
+	newPSTabItem.Connect("activate", func() { newScript() })
+	closePSTabItem.Connect("activate", func() { closeCurrentTab() })
+	newRemotePSTabItem.SetSensitive(false) // Disabled - remote connectivity not implemented
+	exitItem.Connect("activate", func() {
+		saveSession()
+		shutdownTranslationLayer()
+		gtk.MainQuit()
+	})
 
 	// Edit Menu
 	editMenu, _ := gtk.MenuNew()
@@ -48,6 +78,7 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 	cutItem, _ := gtk.MenuItemNewWithLabel("Cut")
 	copyItem, _ := gtk.MenuItemNewWithLabel("Copy")
 	pasteItem, _ := gtk.MenuItemNewWithLabel("Paste")
+	findItem, _ := gtk.MenuItemNewWithLabel("Find in Script...")
 	clearItem, _ := gtk.MenuItemNewWithLabel("Clear Console")
 
 	editMenu.Append(undoItem)
@@ -59,6 +90,9 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 	editMenu.Append(pasteItem)
 	sep3, _ := gtk.SeparatorMenuItemNew()
 	editMenu.Append(sep3)
+	editMenu.Append(findItem)
+	sep3b, _ := gtk.SeparatorMenuItemNew()
+	editMenu.Append(sep3b)
 	editMenu.Append(clearItem)
 
 	undoItem.Connect("activate", func() { undoText() })
@@ -66,6 +100,7 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 	cutItem.Connect("activate", func() { cutText() })
 	copyItem.Connect("activate", func() { copyText() })
 	pasteItem.Connect("activate", func() { pasteText() })
+	findItem.Connect("activate", func() { showFindDialog() })
 	clearItem.Connect("activate", func() { clearConsole() })
 
 	// View Menu
@@ -75,14 +110,23 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 
 	showScriptItem, _ := gtk.MenuItemNewWithLabel("Show Script Pane")
 	showConsoleItem, _ := gtk.MenuItemNewWithLabel("Show Console Pane")
+	showCommandAddonItem, _ := gtk.CheckMenuItemNewWithLabel("Show Command Add-On")
+	showCommandAddonMenuItem = showCommandAddonItem // Store global reference
 	viewMenu.Append(showScriptItem)
 	viewMenu.Append(showConsoleItem)
+	sep5, _ := gtk.SeparatorMenuItemNew()
+	viewMenu.Append(sep5)
+	viewMenu.Append(showCommandAddonItem)
+
+	showCommandAddonItem.Connect("toggled", func() {
+		toggleCommandAddOn()
+	})
 
 	// Tools Menu
 	toolsMenu, _ := gtk.MenuNew()
 	toolsMenuItem, _ := gtk.MenuItemNewWithLabel("Tools")
 	toolsMenuItem.SetSubmenu(toolsMenu)
-	
+
 	// Debug logging toggle
 	debugLoggingItem, _ := gtk.CheckMenuItemNewWithLabel("Enable Debug Logging")
 	debugLoggingItem.SetActive(debugLoggingEnabled)
@@ -90,10 +134,10 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 		toggleDebugLogging(debugLoggingItem, win)
 	})
 	toolsMenu.Append(debugLoggingItem)
-	
+
 	sep4, _ := gtk.SeparatorMenuItemNew()
 	toolsMenu.Append(sep4)
-	
+
 	optionsItem, _ := gtk.MenuItemNewWithLabel("Options...")
 	toolsMenu.Append(optionsItem)
 
@@ -123,6 +167,17 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 	helpMenuItem, _ := gtk.MenuItemNewWithLabel("Help")
 	helpMenuItem.SetSubmenu(helpMenu)
 
+	updateHelpItem, _ := gtk.MenuItemNewWithLabel("Update Windows PowerShell Help")
+	updateHelpItem.Connect("activate", func() {
+		if commandDatabase != nil {
+			showUpdateHelpDialog(win, commandDatabase)
+		}
+	})
+	helpMenu.Append(updateHelpItem)
+
+	sep6, _ := gtk.SeparatorMenuItemNew()
+	helpMenu.Append(sep6)
+
 	aboutItem, _ := gtk.MenuItemNewWithLabel("About")
 	helpMenu.Append(aboutItem)
 	aboutItem.Connect("activate", func() { showAbout(win) })
@@ -142,7 +197,7 @@ func createMenuBar(win *gtk.Window) *gtk.MenuBar {
 func toggleDebugLogging(item *gtk.CheckMenuItem, win *gtk.Window) {
 	active := item.GetActive()
 	debugLoggingEnabled = active
-	
+
 	if active {
 		err := translation.EnableDebugLogging()
 		if err != nil {

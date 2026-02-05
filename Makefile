@@ -63,8 +63,20 @@ vet:
 
 lint:
 	@echo "Linting code..."
-	@which golint > /dev/null || (echo "Installing golint..." && go install golang.org/x/lint/golint@latest)
-	golint ./...
+	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install from https://golangci-lint.run/usage/install/" && exit 1)
+	golangci-lint run --timeout=5m
+
+lint-fix:
+	@echo "Linting code with auto-fix..."
+	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install from https://golangci-lint.run/usage/install/" && exit 1)
+	golangci-lint run --fix --timeout=5m
+
+pre-publish:
+	@echo "Running pre-publish checks..."
+	@./lint.sh
+
+ci: lint test build
+	@echo "CI checks complete"
 
 # Cross-compilation targets
 build-linux:
@@ -87,7 +99,10 @@ help:
 	@echo "  test-coverage - Run tests with coverage"
 	@echo "  fmt           - Format code"
 	@echo "  vet           - Vet code"
-	@echo "  lint          - Lint code"
+	@echo "  lint          - Run golangci-lint"
+	@echo "  lint-fix      - Run golangci-lint with auto-fix"
+	@echo "  pre-publish   - Run all pre-publish checks (lint.sh)"
+	@echo "  ci            - Run CI checks (lint + test + build)"
 	@echo "  build-linux   - Cross-compile for Linux"
 	@echo "  build-windows - Cross-compile for Windows"
 	@echo "  build-all     - Build for all platforms"

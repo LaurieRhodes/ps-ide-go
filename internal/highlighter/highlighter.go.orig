@@ -2,7 +2,6 @@ package highlighter
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"github.com/alecthomas/chroma/v2"
@@ -93,16 +92,16 @@ func ValidateSyntax(code string) []string {
 
 		// Check for common errors
 		if strings.HasSuffix(trimmed, "|") && !strings.HasSuffix(trimmed, "||") {
-			errors = append(errors, fmt.Sprintf("Line %d: Pipeline operator '|' should not end a line", lineNum))
+			errors = append(errors, "Line %d: Pipeline operator '|' should not end a line", lineNum)
 		}
 	}
 
 	if openBraces != 0 {
-		errors = append(errors, fmt.Sprintf("Unmatched braces: %d unclosed '{'", openBraces))
+		errors = append(errors, "Unmatched braces: %d unclosed '{'", openBraces)
 	}
 
 	if openParens != 0 {
-		errors = append(errors, fmt.Sprintf("Unmatched parentheses: %d unclosed '('", openParens))
+		errors = append(errors, "Unmatched parentheses: %d unclosed '('", openParens)
 	}
 
 	return errors

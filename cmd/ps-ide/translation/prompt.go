@@ -28,14 +28,14 @@ func (pg *PromptGenerator) Generate(currentDir string) string {
 	// Simplify home directory to ~
 	homeDir, _ := os.UserHomeDir()
 	displayPath := currentDir
-	
+
 	if homeDir != "" && strings.HasPrefix(currentDir, homeDir) {
 		displayPath = "~" + strings.TrimPrefix(currentDir, homeDir)
 	}
-	
+
 	// Use forward slashes for consistency
 	displayPath = filepath.ToSlash(displayPath)
-	
+
 	switch pg.style {
 	case RemotePrompt:
 		return fmt.Sprintf("[%s]: PS %s> ", pg.remoteHost, displayPath)
@@ -83,17 +83,17 @@ func (pg *PromptGenerator) formatCustomPrompt(displayPath string) string {
 	if pg.customFormat == "" {
 		return pg.Generate(displayPath)
 	}
-	
+
 	// Replace placeholders in custom format
 	result := pg.customFormat
 	result = strings.ReplaceAll(result, "{path}", displayPath)
 	result = strings.ReplaceAll(result, "{dir}", filepath.Base(displayPath))
-	
+
 	// If custom format doesn't end with prompt indicator, add it
 	if !strings.HasSuffix(result, "> ") && !strings.HasSuffix(result, ">") {
 		result += "> "
 	}
-	
+
 	return result
 }
 

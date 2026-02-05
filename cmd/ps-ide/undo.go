@@ -6,22 +6,22 @@ import (
 
 // UndoStack manages undo/redo operations for a text buffer
 type UndoStack struct {
-	buffer      *gtk.TextBuffer
-	undoStack   []string
-	redoStack   []string
-	maxLevels   int
-	isUndoing   bool
-	lastText    string
+	buffer    *gtk.TextBuffer
+	undoStack []string
+	redoStack []string
+	maxLevels int
+	isUndoing bool
+	lastText  string
 }
 
 func NewUndoStack(buffer *gtk.TextBuffer, maxLevels int) *UndoStack {
 	us := &UndoStack{
-		buffer:      buffer,
-		undoStack:   make([]string, 0),
-		redoStack:   make([]string, 0),
-		maxLevels:   maxLevels,
-		isUndoing:   false,
-		lastText:    "",
+		buffer:    buffer,
+		undoStack: make([]string, 0),
+		redoStack: make([]string, 0),
+		maxLevels: maxLevels,
+		isUndoing: false,
+		lastText:  "",
 	}
 
 	// Get initial text

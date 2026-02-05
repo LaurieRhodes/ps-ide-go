@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	debugLogger *log.Logger
-	debugFile   *os.File
-	debugMutex  sync.Mutex
+	debugLogger  *log.Logger
+	debugFile    *os.File
+	debugMutex   sync.Mutex
 	debugEnabled = false
 )
 
@@ -20,33 +20,33 @@ var (
 func EnableDebugLogging() error {
 	debugMutex.Lock()
 	defer debugMutex.Unlock()
-	
+
 	if debugEnabled {
 		return nil
 	}
-	
+
 	// Create log directory
 	homeDir, _ := os.UserHomeDir()
 	logDir := filepath.Join(homeDir, ".ps-ide", "logs")
 	os.MkdirAll(logDir, 0755)
-	
+
 	// Create log file with timestamp
 	timestamp := time.Now().Format("20060102-150405")
 	logPath := filepath.Join(logDir, fmt.Sprintf("ps-ide-debug-%s.log", timestamp))
-	
+
 	var err error
 	debugFile, err = os.Create(logPath)
 	if err != nil {
 		return fmt.Errorf("failed to create log file: %w", err)
 	}
-	
+
 	debugLogger = log.New(debugFile, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	debugEnabled = true
-	
+
 	debugLogger.Printf("=== PS-IDE Debug Logging Started ===")
 	debugLogger.Printf("Log file: %s", logPath)
 	fmt.Printf("Debug logging enabled: %s\n", logPath)
-	
+
 	return nil
 }
 
@@ -54,19 +54,19 @@ func EnableDebugLogging() error {
 func DisableDebugLogging() {
 	debugMutex.Lock()
 	defer debugMutex.Unlock()
-	
+
 	if !debugEnabled {
 		return
 	}
-	
+
 	if debugLogger != nil {
 		debugLogger.Printf("=== PS-IDE Debug Logging Ended ===")
 	}
-	
+
 	if debugFile != nil {
 		debugFile.Close()
 	}
-	
+
 	debugEnabled = false
 	debugLogger = nil
 	debugFile = nil
@@ -76,7 +76,7 @@ func DisableDebugLogging() {
 func DebugLog(format string, args ...interface{}) {
 	debugMutex.Lock()
 	defer debugMutex.Unlock()
-	
+
 	if debugEnabled && debugLogger != nil {
 		debugLogger.Printf(format, args...)
 	}
@@ -86,7 +86,7 @@ func DebugLog(format string, args ...interface{}) {
 func DebugLogRaw(label string, data string) {
 	debugMutex.Lock()
 	defer debugMutex.Unlock()
-	
+
 	if debugEnabled && debugLogger != nil {
 		// Show the raw data with escape sequences visible
 		debugLogger.Printf("=== %s ===", label)

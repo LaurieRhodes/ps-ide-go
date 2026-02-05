@@ -11,6 +11,22 @@ import (
 
 var lastOpenDirectory string
 
+func getCurrentTabIndex() int {
+	visibleName := contentStack.GetVisibleChildName()
+	if visibleName == "" {
+		return -1
+	}
+
+	// Parse the tab index from the name (format: "tab-N")
+	var tabNum int
+	_, err := fmt.Sscanf(visibleName, "tab-%d", &tabNum)
+	if err != nil || tabNum < 1 || tabNum > len(openTabs) {
+		return -1
+	}
+
+	return tabNum - 1
+}
+
 func newScript() {
 	createNewTab()
 	statusLabel.SetText("New script created")
@@ -38,12 +54,11 @@ func openScript(win *gtk.Window) {
 	if dialog.Run() == gtk.RESPONSE_ACCEPT {
 		filename := dialog.GetFilename()
 		lastOpenDirectory = filepath.Dir(filename)
-		
+
 		content, err := os.ReadFile(filename)
 		if err == nil {
-			currentPageNum := notebook.GetCurrentPage()
 			currentTab := getCurrentTab()
-			
+
 			shouldReplaceCurrentTab := false
 			if currentTab != nil && currentTab.filename == "" && !currentTab.modified {
 				start := currentTab.buffer.GetStartIter()
@@ -58,16 +73,25 @@ func openScript(win *gtk.Window) {
 				currentTab.buffer.SetText(string(content))
 				currentTab.filename = filename
 				currentTab.modified = false
-				updateTabLabelText(currentPageNum)
+				updateTabTitle(currentTab)
+
+				// Trigger syntax highlighting for opened file
+				if currentTab.syntaxHighlighter != nil {
+					currentTab.syntaxHighlighter.Highlight()
+				}
 			} else {
 				tab := createNewTab()
 				tab.buffer.SetText(string(content))
 				tab.filename = filename
 				tab.modified = false
-				pageNum := notebook.GetCurrentPage()
-				updateTabLabelText(pageNum)
+				updateTabTitle(tab)
+
+				// Trigger syntax highlighting for opened file
+				if tab.syntaxHighlighter != nil {
+					tab.syntaxHighlighter.Highlight()
+				}
 			}
-			
+
 			statusLabel.SetText("Opened: " + filename)
 		} else {
 			statusLabel.SetText("Error opening file")
@@ -90,12 +114,11 @@ func saveScript(win *gtk.Window) {
 
 	start, end := tab.buffer.GetBounds()
 	content, _ := tab.buffer.GetText(start, end, false)
-	
+
 	err := os.WriteFile(tab.filename, []byte(content), 0644)
 	if err == nil {
 		tab.modified = false
-		pageNum := notebook.GetCurrentPage()
-		updateTabLabelText(pageNum)
+		updateTabTitle(tab)
 		statusLabel.SetText("Saved: " + tab.filename)
 	} else {
 		statusLabel.SetText("Error saving file")
@@ -127,8 +150,7 @@ func saveScriptAs(win *gtk.Window) {
 	if tab.filename != "" {
 		dialog.SetCurrentName(getBaseName(tab.filename))
 	} else {
-		pageNum := notebook.GetCurrentPage()
-		dialog.SetCurrentName(fmt.Sprintf("Untitled%d.ps1", pageNum+1))
+		dialog.SetCurrentName(fmt.Sprintf("Untitled%d.ps1", tab.tabID))
 	}
 
 	if dialog.Run() == gtk.RESPONSE_ACCEPT {
@@ -141,13 +163,12 @@ func saveScriptAs(win *gtk.Window) {
 
 		start, end := tab.buffer.GetBounds()
 		content, _ := tab.buffer.GetText(start, end, false)
-		
+
 		err := os.WriteFile(filename, []byte(content), 0644)
 		if err == nil {
 			tab.filename = filename
 			tab.modified = false
-			pageNum := notebook.GetCurrentPage()
-			updateTabLabelText(pageNum)
+			updateTabTitle(tab)
 			statusLabel.SetText("Saved: " + filename)
 		} else {
 			statusLabel.SetText("Error saving file")
@@ -165,12 +186,11 @@ func saveCurrentFile() {
 
 	start, end := tab.buffer.GetBounds()
 	content, _ := tab.buffer.GetText(start, end, false)
-	
+
 	err := os.WriteFile(tab.filename, []byte(content), 0644)
 	if err == nil {
 		tab.modified = false
-		pageNum := notebook.GetCurrentPage()
-		updateTabLabelText(pageNum)
+		updateTabTitle(tab)
 		statusLabel.SetText("Saved: " + tab.filename)
 	} else {
 		statusLabel.SetText("Error saving file")
@@ -202,8 +222,7 @@ func showSaveAsDialog() bool {
 	if tab.filename != "" {
 		dialog.SetCurrentName(getBaseName(tab.filename))
 	} else {
-		pageNum := notebook.GetCurrentPage()
-		dialog.SetCurrentName(fmt.Sprintf("Untitled%d.ps1", pageNum+1))
+		dialog.SetCurrentName(fmt.Sprintf("Untitled%d.ps1", tab.tabID))
 	}
 
 	response := dialog.Run()
@@ -219,13 +238,12 @@ func showSaveAsDialog() bool {
 
 		start, end := tab.buffer.GetBounds()
 		content, _ := tab.buffer.GetText(start, end, false)
-		
+
 		err := os.WriteFile(filename, []byte(content), 0644)
 		if err == nil {
 			tab.filename = filename
 			tab.modified = false
-			pageNum := notebook.GetCurrentPage()
-			updateTabLabelText(pageNum)
+			updateTabTitle(tab)
 			statusLabel.SetText("Saved: " + filename)
 			saved = true
 		} else {

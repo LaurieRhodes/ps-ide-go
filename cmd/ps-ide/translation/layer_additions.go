@@ -14,24 +14,24 @@ func (tl *TranslationLayer) ExecuteCommandWithOutput(cmd string) (string, error)
 	}
 	tl.isExecuting = true
 	tl.mutex.Unlock()
-	
+
 	defer func() {
 		tl.mutex.Lock()
 		tl.isExecuting = false
 		tl.mutex.Unlock()
 	}()
-	
+
 	// Add to history
 	if err := tl.queue.Add(cmd, Interactive); err != nil {
 		return "", err
 	}
-	
+
 	// Record start time
 	startTime := time.Now()
-	
+
 	// Execute command
 	result, err := tl.pipes.SendCommand(cmd, Interactive)
-	
+
 	// Record execution time and result
 	duration := time.Since(startTime)
 	success := err == nil
@@ -39,15 +39,15 @@ func (tl *TranslationLayer) ExecuteCommandWithOutput(cmd string) (string, error)
 	if !success {
 		exitCode = 1
 	}
-	
+
 	tl.queue.UpdateLastEntry(duration, success, exitCode)
-	
+
 	// Update session state (query current directory)
 	go tl.updateDirectory()
-	
+
 	if err != nil {
 		return "", fmt.Errorf("command execution failed: %w", err)
 	}
-	
+
 	return result, nil
 }

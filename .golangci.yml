@@ -1,0 +1,131 @@
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment  # Too strict for GUI structs
+  
+  lll:
+    line-length: 140
+  
+  misspell:
+    locale: US
+  
+  nolintlint:
+    allow-unused: false
+    allow-no-explanation: []
+    require-explanation: true
+    require-specific: true
+
+linters:
+  enable:
+    # Basic Go checks
+    - errcheck       # Check for unchecked errors
+    - gosimple       # Suggest code simplifications
+    - govet          # Official Go tool
+    - ineffassign    # Detect ineffectual assignments
+    - staticcheck    # Go static analysis
+    - unused         # Find unused code
+    
+    # Code quality
+    - gocyclo        # Detect complex functions
+    - goconst        # Find repeated strings that could be constants
+    - gocritic       # Comprehensive linter with many checks
+    - gofmt          # Check formatting
+    - goimports      # Check imports formatting
+    - revive         # Fast, extensible linter
+    
+    # Bug detection
+    - bodyclose      # Check HTTP response bodies are closed
+    - errname        # Error naming conventions
+    - errorlint      # Error wrapping checks
+    - nilerr         # Find incorrect nil error returns
+    
+    # Style
+    - misspell       # Spelling mistakes
+    - whitespace     # Detect leading/trailing whitespace
+    - unconvert      # Unnecessary type conversions
+    
+    # Best practices
+    - gosec          # Security issues
+    - noctx          # HTTP requests without context
+
+  disable:
+    - depguard       # Too opinionated about imports
+    - exhaustruct    # Forces all struct fields to be initialized (bad for GUI)
+    - funlen         # Function length limits (too strict)
+    - gocognit       # Similar to gocyclo but more complex
+    - godox          # Detects TODO/FIXME (annoying in active dev)
+    - gomnd          # Magic number detection (too noisy)
+    - lll            # Line length (disabled, let gofmt handle it)
+    - nlreturn       # Blank line before return (too opinionated)
+    - paralleltest   # Requires t.Parallel() in tests (too strict)
+    - testpackage    # Separate test packages (too opinionated)
+    - wrapcheck      # Requires wrapping all errors (too noisy)
+    - wsl            # Whitespace linter (too opinionated)
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+  
+  # Exclude specific directories
+  exclude-dirs:
+    - vendor
+    - dist
+    - .git
+  
+  # Exclude specific files
+  exclude-files:
+    - ".*\\.pb\\.go$"  # Generated protobuf
+    - ".*_gen\\.go$"   # Other generated files
+  
+  # Exclude specific patterns
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - noctx
+    
+    # Exclude error checks in main.go (CLI handling)
+    - path: main\.go
+      linters:
+        - errcheck
+    
+    # Allow certain errors in internal packages
+    - path: internal/
+      linters:
+        - gosec
+      text: "G404:"  # Weak random number generator (OK for non-crypto)
+
+run:
+  timeout: 5m
+  tests: true
+  build-tags:
+    - integration
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true

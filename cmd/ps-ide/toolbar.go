@@ -82,14 +82,14 @@ func createToolbar() *gtk.Toolbar {
 
 	// Run Script (F5) - Green play arrow
 	runBtn, _ := gtk.ToolButtonNew(nil, "")
-	
+
 	greenPlayIcon := createGreenPlayIcon()
 	if greenPlayIcon != nil {
 		runBtn.SetIconWidget(greenPlayIcon)
 	} else {
 		runBtn.SetIconName("media-playback-start")
 	}
-	
+
 	runBtn.SetTooltipText("Run Script (F5)")
 	runBtn.Connect("clicked", func() { runScript() })
 	toolbar.Insert(runBtn, -1)

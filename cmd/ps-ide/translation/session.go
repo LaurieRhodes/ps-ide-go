@@ -34,7 +34,7 @@ const (
 // NewSessionStateManager creates a new session state manager
 func NewSessionStateManager() *SessionStateManager {
 	currentDir, _ := os.Getwd()
-	
+
 	return &SessionStateManager{
 		state: &SessionState{
 			CurrentDirectory: currentDir,
@@ -54,7 +54,7 @@ func NewSessionStateManager() *SessionStateManager {
 func (ssm *SessionStateManager) GetCurrentDirectory() string {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	return ssm.state.CurrentDirectory
 }
 
@@ -62,7 +62,7 @@ func (ssm *SessionStateManager) GetCurrentDirectory() string {
 func (ssm *SessionStateManager) SetCurrentDirectory(dir string) {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.CurrentDirectory = dir
 	ssm.state.LastSync = time.Now()
 }
@@ -71,7 +71,7 @@ func (ssm *SessionStateManager) SetCurrentDirectory(dir string) {
 func (ssm *SessionStateManager) GetVariable(name string) (VariableInfo, bool) {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	variable, exists := ssm.state.Variables[name]
 	return variable, exists
 }
@@ -80,7 +80,7 @@ func (ssm *SessionStateManager) GetVariable(name string) (VariableInfo, bool) {
 func (ssm *SessionStateManager) SetVariable(name string, info VariableInfo) {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.Variables[name] = info
 }
 
@@ -88,7 +88,7 @@ func (ssm *SessionStateManager) SetVariable(name string, info VariableInfo) {
 func (ssm *SessionStateManager) GetAllVariables() map[string]VariableInfo {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	// Return a copy
 	result := make(map[string]VariableInfo)
 	for k, v := range ssm.state.Variables {
@@ -101,7 +101,7 @@ func (ssm *SessionStateManager) GetAllVariables() map[string]VariableInfo {
 func (ssm *SessionStateManager) GetFunction(name string) (FunctionInfo, bool) {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	function, exists := ssm.state.Functions[name]
 	return function, exists
 }
@@ -110,7 +110,7 @@ func (ssm *SessionStateManager) GetFunction(name string) (FunctionInfo, bool) {
 func (ssm *SessionStateManager) SetFunction(name string, info FunctionInfo) {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.Functions[name] = info
 }
 
@@ -118,7 +118,7 @@ func (ssm *SessionStateManager) SetFunction(name string, info FunctionInfo) {
 func (ssm *SessionStateManager) GetAllFunctions() map[string]FunctionInfo {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	// Return a copy
 	result := make(map[string]FunctionInfo)
 	for k, v := range ssm.state.Functions {
@@ -131,7 +131,7 @@ func (ssm *SessionStateManager) GetAllFunctions() map[string]FunctionInfo {
 func (ssm *SessionStateManager) GetModules() []ModuleInfo {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	// Return a copy
 	result := make([]ModuleInfo, len(ssm.state.Modules))
 	copy(result, ssm.state.Modules)
@@ -142,7 +142,7 @@ func (ssm *SessionStateManager) GetModules() []ModuleInfo {
 func (ssm *SessionStateManager) SetModules(modules []ModuleInfo) {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.Modules = modules
 }
 
@@ -150,7 +150,7 @@ func (ssm *SessionStateManager) SetModules(modules []ModuleInfo) {
 func (ssm *SessionStateManager) GetPSVersion() string {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	return ssm.state.PSVersion
 }
 
@@ -158,7 +158,7 @@ func (ssm *SessionStateManager) GetPSVersion() string {
 func (ssm *SessionStateManager) SetPSVersion(version string) {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.PSVersion = version
 }
 
@@ -166,7 +166,7 @@ func (ssm *SessionStateManager) SetPSVersion(version string) {
 func (ssm *SessionStateManager) GetLastExitCode() int {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	return ssm.state.LastExitCode
 }
 
@@ -174,7 +174,7 @@ func (ssm *SessionStateManager) GetLastExitCode() int {
 func (ssm *SessionStateManager) SetLastExitCode(code int) {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.LastExitCode = code
 }
 
@@ -182,9 +182,9 @@ func (ssm *SessionStateManager) SetLastExitCode(code int) {
 func (ssm *SessionStateManager) GetCompletions(prefix string) []string {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	var completions []string
-	
+
 	// Variable completions (start with $)
 	if len(prefix) > 0 && prefix[0] == '$' {
 		varPrefix := prefix[1:]
@@ -194,14 +194,14 @@ func (ssm *SessionStateManager) GetCompletions(prefix string) []string {
 			}
 		}
 	}
-	
+
 	// Function completions
 	for funcName := range ssm.state.Functions {
 		if matchesPrefix(funcName, prefix) {
 			completions = append(completions, funcName)
 		}
 	}
-	
+
 	return completions
 }
 
@@ -210,7 +210,7 @@ func matchesPrefix(s, prefix string) bool {
 	if len(s) < len(prefix) {
 		return false
 	}
-	
+
 	for i := 0; i < len(prefix); i++ {
 		c1, c2 := s[i], prefix[i]
 		if c1 >= 'A' && c1 <= 'Z' {
@@ -230,7 +230,7 @@ func matchesPrefix(s, prefix string) bool {
 func (ssm *SessionStateManager) SyncFromJSON(data []byte, updateType UpdateType) error {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	switch updateType {
 	case DirectoryUpdate:
 		var dir string
@@ -238,7 +238,7 @@ func (ssm *SessionStateManager) SyncFromJSON(data []byte, updateType UpdateType)
 			return err
 		}
 		ssm.state.CurrentDirectory = dir
-		
+
 	case VariablesUpdate:
 		var variables []VariableInfo
 		if err := json.Unmarshal(data, &variables); err != nil {
@@ -247,7 +247,7 @@ func (ssm *SessionStateManager) SyncFromJSON(data []byte, updateType UpdateType)
 		for _, v := range variables {
 			ssm.state.Variables[v.Name] = v
 		}
-		
+
 	case FunctionsUpdate:
 		var functions []FunctionInfo
 		if err := json.Unmarshal(data, &functions); err != nil {
@@ -256,7 +256,7 @@ func (ssm *SessionStateManager) SyncFromJSON(data []byte, updateType UpdateType)
 		for _, f := range functions {
 			ssm.state.Functions[f.Name] = f
 		}
-		
+
 	case ModulesUpdate:
 		var modules []ModuleInfo
 		if err := json.Unmarshal(data, &modules); err != nil {
@@ -264,7 +264,7 @@ func (ssm *SessionStateManager) SyncFromJSON(data []byte, updateType UpdateType)
 		}
 		ssm.state.Modules = modules
 	}
-	
+
 	ssm.state.LastSync = time.Now()
 	return nil
 }
@@ -289,7 +289,7 @@ func (ssm *SessionStateManager) GetQueryCommand(updateType UpdateType) string {
 func (ssm *SessionStateManager) GetLastSyncTime() time.Time {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	return ssm.state.LastSync
 }
 
@@ -297,7 +297,7 @@ func (ssm *SessionStateManager) GetLastSyncTime() time.Time {
 func (ssm *SessionStateManager) NeedsSync(maxAge time.Duration) bool {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	return time.Since(ssm.state.LastSync) > maxAge
 }
 
@@ -305,7 +305,7 @@ func (ssm *SessionStateManager) NeedsSync(maxAge time.Duration) bool {
 func (ssm *SessionStateManager) GetState() SessionState {
 	ssm.mutex.RLock()
 	defer ssm.mutex.RUnlock()
-	
+
 	// Deep copy
 	state := SessionState{
 		CurrentDirectory: ssm.state.CurrentDirectory,
@@ -317,7 +317,7 @@ func (ssm *SessionStateManager) GetState() SessionState {
 		ErrorActionPref:  ssm.state.ErrorActionPref,
 		LastSync:         ssm.state.LastSync,
 	}
-	
+
 	for k, v := range ssm.state.Variables {
 		state.Variables[k] = v
 	}
@@ -325,7 +325,7 @@ func (ssm *SessionStateManager) GetState() SessionState {
 		state.Functions[k] = v
 	}
 	copy(state.Modules, ssm.state.Modules)
-	
+
 	return state
 }
 
@@ -333,7 +333,7 @@ func (ssm *SessionStateManager) GetState() SessionState {
 func (ssm *SessionStateManager) ClearVariables() {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.Variables = make(map[string]VariableInfo)
 }
 
@@ -341,7 +341,7 @@ func (ssm *SessionStateManager) ClearVariables() {
 func (ssm *SessionStateManager) ClearFunctions() {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	ssm.state.Functions = make(map[string]FunctionInfo)
 }
 
@@ -349,7 +349,7 @@ func (ssm *SessionStateManager) ClearFunctions() {
 func (ssm *SessionStateManager) Reset() {
 	ssm.mutex.Lock()
 	defer ssm.mutex.Unlock()
-	
+
 	currentDir, _ := os.Getwd()
 	ssm.state = &SessionState{
 		CurrentDirectory: currentDir,

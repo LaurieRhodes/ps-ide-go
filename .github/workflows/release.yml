@@ -1,0 +1,212 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Release Binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            binary_name: ps-ide
+            asset_name: ps-ide-linux-amd64
+          
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            binary_name: ps-ide
+            asset_name: ps-ide-linux-arm64
+          
+          # Windows builds
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            binary_name: ps-ide.exe
+            asset_name: ps-ide-windows-amd64.exe
+          
+          # macOS builds
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            binary_name: ps-ide
+            asset_name: ps-ide-darwin-amd64
+          
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            binary_name: ps-ide
+            asset_name: ps-ide-darwin-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version info
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install Linux dependencies (Linux only)
+        if: matrix.goos == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+
+      - name: Install macOS dependencies (macOS only)
+        if: matrix.goos == 'darwin'
+        run: |
+          brew install pkg-config
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+        run: |
+          go build -v \
+            -ldflags "-X 'main.Version=${{ steps.version.outputs.version }}' -X 'main.BuildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')'" \
+            -o ${{ matrix.binary_name }} \
+            ./cmd/ps-ide
+
+      - name: Create tarball (Unix)
+        if: matrix.goos != 'windows'
+        run: |
+          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.binary_name }}
+          sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
+
+      - name: Create zip (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          7z a ${{ matrix.asset_name }}.zip ${{ matrix.binary_name }}
+          # PowerShell equivalent of sha256sum
+          Get-FileHash ${{ matrix.asset_name }}.zip -Algorithm SHA256 | ForEach-Object { $_.Hash + "  " + $_.Path.Split("\")[-1] } | Out-File -Encoding ASCII ${{ matrix.asset_name }}.zip.sha256
+
+      - name: Upload artifacts (Unix)
+        if: matrix.goos != 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: |
+            ${{ matrix.asset_name }}.tar.gz
+            ${{ matrix.asset_name }}.tar.gz.sha256
+
+      - name: Upload artifacts (Windows)
+        if: matrix.goos == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: |
+            ${{ matrix.asset_name }}.zip
+            ${{ matrix.asset_name }}.zip.sha256
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release-assets/ \;
+          ls -lh release-assets/
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## What's New in ${{ steps.version.outputs.version }}
+
+          ### Downloads
+          Choose the appropriate binary for your platform:
+          
+          - **Linux (x64)**: `ps-ide-linux-amd64.tar.gz`
+          - **Linux (ARM64)**: `ps-ide-linux-arm64.tar.gz`
+          - **Windows (x64)**: `ps-ide-windows-amd64.exe.zip`
+          - **macOS (Intel)**: `ps-ide-darwin-amd64.tar.gz`
+          - **macOS (Apple Silicon)**: `ps-ide-darwin-arm64.tar.gz`
+
+          ### Installation
+          
+          **Linux/macOS:**
+          ```bash
+          tar xzf ps-ide-*.tar.gz
+          chmod +x ps-ide
+          sudo mv ps-ide /usr/local/bin/
+          ```
+
+          **Windows:**
+          ```powershell
+          # Extract zip and add to PATH
+          ```
+
+          ### Verification
+          All binaries include SHA256 checksums for verification.
+
+          ### Changelog
+          See [CHANGELOG.md](https://github.com/LaurieRhodes/ps-ide-go/blob/main/CHANGELOG.md) for detailed changes.
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Release ${{ steps.version.outputs.version }} created successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Built Binaries:" >> $GITHUB_STEP_SUMMARY
+          echo "- Linux (x64, ARM64)" >> $GITHUB_STEP_SUMMARY
+          echo "- Windows (x64)" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS (Intel, Apple Silicon)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View release: https://github.com/LaurieRhodes/ps-ide-go/releases/tag/${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY

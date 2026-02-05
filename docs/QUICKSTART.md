@@ -1,233 +1,663 @@
-# Quick Start Guide
+# Quick Start Guide - PS-IDE-Go v1.0.0
 
-## First Time Setup
+**Platform:** Optimized for Linux | **Status:** Production Ready
 
-### 1. Install Dependencies
+---
+
+## For End Users (Recommended)
+
+### One-Line Install (Linux)
+
 ```bash
-cd /media/laurie/Data/Github/ps-ide-go
-chmod +x install-deps.sh build.sh
-./install-deps.sh
+curl -sSL https://raw.githubusercontent.com/LaurieRhodes/ps-ide-go/main/install.sh | bash
 ```
 
-This will install:
-- Go programming language
-- PowerShell Core (pwsh)
-- GUI development libraries (gcc, OpenGL, X11)
+**What this does:**
+- Installs PowerShell and GTK3 runtime
+- Downloads latest binary for your architecture
+- Installs to `~/.local/bin`
+- Ready to run in 2 minutes!
 
-### 2. Build the Application
+**Then run:**
 ```bash
-# Option 1: Using the build script
-./build.sh
+ps-ide
+```
 
-# Option 2: Using Make
+### Manual Binary Install (Linux)
+
+If you prefer manual control:
+
+```bash
+# 1. Install runtime dependencies
+sudo apt install powershell libgtk-3-0  # Ubuntu/Debian
+# or: sudo dnf install powershell gtk3   # Fedora
+# or: sudo pacman -S powershell gtk3     # Arch
+
+# 2. Download binary
+wget https://github.com/LaurieRhodes/ps-ide-go/releases/latest/download/ps-ide-linux-amd64.tar.gz
+
+# 3. Extract and install
+tar xzf ps-ide-linux-amd64.tar.gz
+chmod +x ps-ide
+sudo mv ps-ide /usr/local/bin/
+# or: mv ps-ide ~/.local/bin/
+
+# 4. Run
+ps-ide
+```
+
+---
+
+## For Developers (Build from Source)
+
+### Prerequisites
+- Go 1.21 or higher
+- PowerShell 7.x
+- GTK3 development libraries
+- C compiler (gcc)
+
+### Quick Build (Linux)
+
+```bash
+# Clone repository
+git clone https://github.com/LaurieRhodes/ps-ide-go.git
+cd ps-ide-go
+
+# Install development dependencies
+./install-dev-deps.sh
+
+# Build
 make build
 
-# Option 3: Manual build
-go mod download
-go build -o ps-ide ./cmd/ps-ide
-```
-
-### 3. Run the Application
-```bash
+# Run
 ./ps-ide
 ```
 
-## Quick Tour
+### Manual Build
 
-### Main Interface
-- **Top**: Toolbar with New, Open, Save, and Run buttons
-- **Middle**: Code editor (top pane) - write your PowerShell scripts here
-- **Bottom**: Output pane - see script execution results here
+```bash
+# Install dependencies
+sudo apt install golang-go powershell \
+    build-essential pkg-config \
+    libgtk-3-dev libglib2.0-dev libcairo2-dev libpango1.0-dev
 
-### Writing Your First Script
+# Get Go modules
+go mod download
 
-1. Type or paste this in the editor:
+# Build
+go build -o ps-ide ./cmd/ps-ide
+
+# Run
+./ps-ide
+```
+
+---
+
+## First Look - Interface Overview
+
+### Main Window Layout
+
+```
+┌─────────────────────────────────────────────┐
+│ File  Edit  Run  View  Help         [×]     │ ← Menu Bar
+├─────────────────────────────────────────────┤
+│ [New] [Open] [Save] [Run] [Stop]  [Find]    │ ← Toolbar
+├─────────────────────────────────────────────┤
+│ script1.ps1  script2.ps1  [+]               │ ← Tab Bar
+├─────────────────────────────────────────────┤
+│ 1  │ # PowerShell Script                    │
+│ 2  │ Write-Host "Hello World"               │ ← Code Editor
+│ 3  │ Get-Date                                │   (with line numbers)
+│ 4  │                                         │
+├─────────────────────────────────────────────┤
+│ PS> Write-Host "Hello World"                │
+│ Hello World                                 │ ← Integrated Console
+│ PS> _                                       │   (PowerShell output)
+└─────────────────────────────────────────────┘
+```
+
+### Key Features
+
+- **Multi-Tab Editor** - Work with multiple scripts simultaneously
+- **Integrated Console** - Full PowerShell console with command history
+- **Syntax Highlighting** - Powered by Chroma (150+ languages)
+- **Code Snippets** - 18 built-in PowerShell templates
+- **Find & Replace** - Search within your scripts
+- **Native GTK3 UI** - Fast, responsive Linux interface
+
+---
+
+## Your First Script
+
+### Quick Test
+
+1. **Launch PS-IDE-Go**
+   ```bash
+   ps-ide
+   ```
+
+2. **Type this in the editor:**
+   ```powershell
+   Write-Host "Hello from PS-IDE-Go!" -ForegroundColor Green
+   Get-Date
+   $PSVersionTable.PSVersion
+   ```
+
+3. **Run the script:**
+   - Click the **Run** button (toolbar)
+   - Or press `F5`
+   - Or menu: **Run → Run Script**
+
+4. **See the output** in the console pane below
+
+### Try a Real Script
+
+Create a system information script:
+
 ```powershell
-Write-Host "Hello from PS-IDE-Go!"
-Get-Date
+# System Information Script
+Write-Host "=== System Information ===" -ForegroundColor Cyan
+
+# OS Information
+Write-Host "`nOperating System:" -ForegroundColor Yellow
+$PSVersionTable.OS
+
+# PowerShell Version
+Write-Host "`nPowerShell Version:" -ForegroundColor Yellow
 $PSVersionTable.PSVersion
+
+# Current User
+Write-Host "`nCurrent User:" -ForegroundColor Yellow
+whoami
+
+# Current Directory
+Write-Host "`nCurrent Directory:" -ForegroundColor Yellow
+Get-Location
+
+# Available Modules
+Write-Host "`nAvailable PowerShell Modules:" -ForegroundColor Yellow
+Get-Module -ListAvailable | Select-Object -First 5 Name, Version
 ```
 
-2. Click the **Run** button or use menu: Run → Run Script
+**Save it:**
+- `Ctrl+S` or click **Save**
+- Name it `system-info.ps1`
+- Run it with `F5`
 
-3. View the output in the bottom pane
+---
 
-### File Operations
+## Essential Keyboard Shortcuts
 
-**Create New File**
-- Click **New** button
-- Or: File → New
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+N` | New file |
+| `Ctrl+O` | Open file |
+| `Ctrl+S` | Save file |
+| `Ctrl+Shift+S` | Save as |
+| `Ctrl+W` | Close current tab |
+| `Ctrl+Tab` | Switch between tabs |
+| `F5` | Run script |
+| `Ctrl+C` | Stop execution |
+| `Ctrl+F` | Find |
+| `Ctrl+H` | Replace |
+| `Ctrl+J` | Insert code snippet |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+/` | Toggle comment |
+| `Ctrl++` | Zoom in |
+| `Ctrl+-` | Zoom out |
 
-**Open Existing File**
-- Click **Open** button
-- Or: File → Open
-- Navigate to a .ps1 file
+---
 
-**Save File**
-- Click **Save** button
-- Or: File → Save
-- First save will prompt for location
+## Working with Tabs
 
-### Example Scripts
+### Creating Tabs
+- **New tab:** `Ctrl+N` or click **New** button
+- **Open file in new tab:** `Ctrl+O`
 
-A sample script is included at `assets/sample.ps1`:
-1. Click **Open**
-2. Navigate to `/media/laurie/Data/Github/ps-ide-go/assets/sample.ps1`
-3. Click **Run** to see it in action
+### Switching Tabs
+- **Next tab:** `Ctrl+Tab`
+- **Click tab header** to switch
 
-## Common Tasks
+### Closing Tabs
+- **Close current:** `Ctrl+W`
+- **Middle-click** on tab header
+- **Right-click → Close** on tab header
 
-### Execute Selected Text (Coming in Phase 2)
-Currently, the entire script is executed. Future versions will support running selected portions.
+### Tab Context Menu (Right-Click)
+- **Close** - Close this tab
+- **Close Other Tabs** - Close all except this one
+- **Close All Tabs** - Close all tabs
+- **Copy Full Path** - Copy file path to clipboard
 
-### Clear Output
-- Menu: Edit → Clear Output
+---
 
-### Check PowerShell Version
-In the editor, type and run:
+## Using Code Snippets
+
+**Access snippets:** Press `Ctrl+J`
+
+### Built-in PowerShell Snippets
+
+| Snippet | Description |
+|---------|-------------|
+| cmdlet | Basic cmdlet structure |
+| function | Simple function |
+| advanced-function | Advanced function with parameters |
+| param | Parameter block |
+| if-else | If-else statement |
+| switch | Switch statement |
+| foreach | ForEach loop |
+| for | For loop |
+| while | While loop |
+| do-while | Do-While loop |
+| try-catch | Try-Catch block |
+| class | PowerShell class |
+| enum | PowerShell enum |
+| region | Collapsible region |
+| comment-help | Comment-based help |
+| pipeline | Pipeline example |
+| filter | Filter function |
+| validate | Parameter validation |
+
+**How to use:**
+1. Press `Ctrl+J`
+2. Select snippet from dialog
+3. Snippet inserts at cursor position
+4. Edit placeholder values
+
+---
+
+## Find & Replace
+
+### Find in Current File
+
+**Open:** `Ctrl+F`
+
+**Features:**
+- Case-sensitive search
+- Whole word matching
+- Regular expressions support
+- Navigate results with **Next/Previous**
+
+### Replace in Current File
+
+**Open:** `Ctrl+H`
+
+**Features:**
+- Replace single occurrence
+- Replace all occurrences
+- Preview before replace
+- Undo support
+
+---
+
+## Integrated Console
+
+### Console Features
+
+- **Full PowerShell console** - Not just output display
+- **Command history** - Up/Down arrows to navigate
+- **Multi-line commands** - Supports complex scripts
+- **ANSI colors** - Full color support
+- **Error handling** - Errors display in red
+- **Progress indicators** - Shows script execution
+
+### Console Commands
+
+Type PowerShell commands directly in console:
+
 ```powershell
-$PSVersionTable
+PS> Get-Process | Where-Object CPU -gt 100
+PS> Get-ChildItem -Recurse *.ps1
+PS> $env:PATH
 ```
 
-## Keyboard Shortcuts (Future)
+### Clear Console
 
-Phase 2 will include:
-- `Ctrl+N` - New file
-- `Ctrl+O` - Open file
-- `Ctrl+S` - Save file
-- `F5` - Run script
-- `Ctrl+F` - Find
-- `Ctrl+H` - Replace
+- **Menu:** Edit → Clear Console
+- **Command:** `Clear-Host` or `cls` in console
 
-## Troubleshooting
+---
 
-### Application Won't Start
-**Error**: "PowerShell (pwsh) not found"
-- Install PowerShell: `sudo apt install powershell`
-- Verify: `which pwsh`
+## File Operations
 
-**Error**: GUI doesn't appear
-- Check X11: `echo $DISPLAY`
-- Test OpenGL: `glxinfo | grep "OpenGL version"`
-- Install missing packages: `sudo apt install libgl1-mesa-dev xorg-dev`
+### Opening Files
 
-### Script Execution Issues
+**Single file:**
+- `Ctrl+O` → Select file
+- Drag & drop file onto window
+- Command line: `ps-ide script.ps1`
 
-**Error**: "Script not executing"
-- Verify PowerShell works in terminal: `pwsh -c "Write-Host 'test'"`
-- Check timeout setting (default 30 seconds)
+**Recent files:**
+- Menu: **File → Recent Files**
+- Shows last 10 opened files
 
-**Error**: "Permission denied"
-- Ensure script has content
-- Try a simple script first: `Write-Host "test"`
+### Saving Files
 
-### Build Issues
+**Save current:**
+- `Ctrl+S`
+- Click **Save** button
 
-**Error**: "Cannot find package"
-- Run: `go mod download`
-- Run: `go mod tidy`
+**Save as new file:**
+- `Ctrl+Shift+S`
+- Choose location and name
 
-**Error**: "gcc not found"
-- Install: `sudo apt install gcc`
+**Save all open tabs:**
+- Menu: **File → Save All**
+
+### File Indicators
+
+- **Modified:** Tab shows `*` after filename
+- **Unsaved:** Tab background changes color
+- **Close prompt:** Asked to save when closing modified files
+
+---
 
 ## Configuration
 
-Configuration is stored at: `~/.config/ps-ide/config.json`
+### Config File Location
 
-Default settings:
+`~/.config/ps-ide/config.json`
+
+### Default Settings
+
 ```json
 {
-  "fontSize": 12,
+  "fontSize": 11,
+  "fontFamily": "Consolas",
   "theme": "monokai",
   "tabSize": 4,
   "wordWrap": false,
   "lineNumbers": true,
-  "windowWidth": 900,
-  "windowHeight": 700,
-  "executionTimeout": 30,
+  "windowWidth": 1200,
+  "windowHeight": 800,
+  "executionTimeout": 120,
   "powerShellPath": "pwsh",
+  "syntaxEngine": "chroma",
   "recentFiles": []
 }
 ```
 
-You can manually edit this file to customize settings.
+### Customization
+
+**Edit manually:**
+```bash
+nano ~/.config/ps-ide/config.json
+```
+
+**Common tweaks:**
+- `fontSize`: 9-16 (default: 11)
+- `fontFamily`: "Consolas", "Liberation Mono", "DejaVu Sans Mono"
+- `theme`: "monokai", "github", "vim", "vs"
+- `tabSize`: 2, 4, 8
+- `wordWrap`: true/false
+- `executionTimeout`: seconds (default: 120)
+
+**Apply changes:** Restart PS-IDE-Go
+
+---
+
+## Troubleshooting
+
+### Linux
+
+#### Application Won't Start
+
+**Error:** "Command not found: ps-ide"
+```bash
+# Add to PATH
+echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Error:** "PowerShell (pwsh) not found"
+```bash
+# Install PowerShell
+sudo apt install powershell  # Ubuntu/Debian
+sudo dnf install powershell  # Fedora
+sudo pacman -S powershell    # Arch
+```
+
+**Error:** "error while loading shared libraries: libgtk-3.so.0"
+```bash
+# Install GTK3 runtime
+sudo apt install libgtk-3-0  # Ubuntu/Debian
+sudo dnf install gtk3        # Fedora
+sudo pacman -S gtk3          # Arch
+```
+
+#### Script Won't Execute
+
+**Check PowerShell works:**
+```bash
+pwsh -c "Write-Host 'Test'"
+```
+
+**Check script permissions:**
+```bash
+ls -l script.ps1
+# Should be readable
+```
+
+**Try simple script first:**
+```powershell
+Write-Host "Hello World"
+```
+
+#### Display Issues
+
+**Blurry text:**
+- Increase font size in config
+- Check display scaling settings
+
+**Wrong colors:**
+- Try different theme in config
+- Check terminal color scheme
+
+### Build Issues
+
+**Error:** "Cannot find package"
+```bash
+go mod download
+go mod tidy
+```
+
+**Error:** "C compiler not found"
+```bash
+sudo apt install build-essential
+```
+
+**Error:** "GTK headers not found"
+```bash
+sudo apt install libgtk-3-dev libglib2.0-dev
+```
+
+---
+
+## Platform-Specific Notes
+
+### Linux (Primary Platform) ✅
+
+**Status:** Fully supported, optimized, production-ready
+
+**Best experience on:**
+- Ubuntu 20.04+
+- Fedora 35+
+- Arch Linux
+- Any modern Linux with GTK3
+
+### macOS (Experimental) ⚠️
+
+**Requirements:**
+```bash
+brew install powershell gtk+3
+```
+
+**Limitations:**
+- Not native macOS look and feel
+- GTK3 via Homebrew required
+- May have rendering quirks
+
+**Recommendation:** Consider VS Code for native macOS experience
+
+### Windows (Experimental) ⚠️
+
+**Requirements:**
+- MSYS2 environment
+- GTK3 runtime (~200MB)
+- Complex setup
+
+**Recommendation:** Use **Visual Studio Code** with PowerShell extension for better Windows experience. PS-IDE-Go is optimized for Linux.
+
+---
 
 ## Tips & Best Practices
 
 ### Script Development
-1. Start with simple scripts to test functionality
-2. Use `Write-Host` for debugging output
-3. Check `$Error` variable for error details
-4. Test scripts in terminal first for complex operations
 
-### File Management
-1. Use `.ps1` extension for scripts
-2. Organize scripts in folders
-3. Use meaningful file names
-4. Recent files will appear in config (Phase 2 will add UI)
+1. **Start simple** - Test with basic scripts first
+2. **Use snippets** - `Ctrl+J` for quick templates
+3. **Test incrementally** - Run frequently during development
+4. **Check errors** - Console shows detailed error messages
+5. **Use variables** - `$Error` for last error details
 
-### Performance
-1. Default timeout is 30 seconds
-2. For long-running scripts, increase timeout in config
-3. Large output may slow the UI - consider redirecting to files
+### Code Organization
 
-## Next Steps
-
-### Explore PowerShell
 ```powershell
-# Get help on any command
-Get-Help Get-Process
+#region Configuration
+# Put configuration variables here
+$LogPath = "/var/log/myscript.log"
+$MaxRetries = 3
+#endregion
 
-# List available cmdlets
-Get-Command
+#region Functions
+function Get-MyData {
+    # Function code here
+}
+#endregion
 
-# Explore modules
-Get-Module -ListAvailable
+#region Main Script
+# Main execution logic
+Get-MyData
+#endregion
 ```
 
-### Customize Your Experience
-1. Edit config file for preferences
-2. Create script templates in a dedicated folder
-3. Bookmark frequently used scripts
+### Performance
 
-### Learn More
-- PowerShell docs: https://docs.microsoft.com/powershell
-- Fyne GUI docs: https://developer.fyne.io/
-- Project docs: `/media/laurie/Data/Github/ps-ide-go/docs/`
+- **Long scripts:** Increase `executionTimeout` in config
+- **Large output:** Redirect to file if output > 10,000 lines
+- **Background jobs:** Use `Start-Job` for long operations
 
-## Roadmap
+### File Management
 
-### Phase 1 (Current - MVP)
-- ✅ Basic editor
-- ✅ Script execution
-- ✅ File operations
-- 🔲 Syntax highlighting integration
-- 🔲 Polish and bug fixes
-
-### Phase 2 (Coming Soon)
-- Multiple file tabs
-- Integrated console
-- Search and replace
-- Keyboard shortcuts
-- Recent files menu
-
-### Phase 3 (Future)
-- IntelliSense/autocomplete
-- Debugging support
-- Code snippets
-- Custom themes
-- Extensions/plugins
-
-## Getting Help
-
-- Check docs: `docs/DEVELOPMENT.md`
-- Review sample: `assets/sample.ps1`
-- Test PowerShell: `pwsh --help`
-
-## Contributing
-
-Have ideas or found bugs? This is a personal learning project, but suggestions are welcome!
+- **Naming:** Use descriptive names (`backup-database.ps1`)
+- **Location:** Organize by project/function
+- **Version control:** Use Git for script history
+- **Templates:** Save common patterns as snippets
 
 ---
 
-**Happy scripting with PS-IDE-Go!** 🚀
+## Example Workflows
+
+### Daily Admin Tasks
+
+```powershell
+# Morning System Check
+Get-Process | Where-Object CPU -gt 50 | Select-Object Name, CPU, Id
+Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, Status
+Get-Disk | Select-Object Number, FriendlyName, Size, PartitionStyle
+```
+
+### Log Analysis
+
+```powershell
+# Parse recent logs
+Get-Content /var/log/syslog | Select-Object -Last 100 | Where-Object { $_ -match "error" }
+```
+
+### Backup Script
+
+```powershell
+# Simple backup
+$Source = "/home/user/documents"
+$Destination = "/backup/documents-$(Get-Date -Format 'yyyy-MM-dd')"
+Copy-Item -Path $Source -Destination $Destination -Recurse
+```
+
+---
+
+## Learning Resources
+
+### PowerShell
+
+- **Official Docs:** https://docs.microsoft.com/powershell
+- **Learn PowerShell:** https://github.com/PowerShell/PowerShell/tree/master/docs/learning-powershell
+- **Community:** r/PowerShell on Reddit
+
+### PS-IDE-Go
+
+- **Repository:** https://github.com/LaurieRhodes/ps-ide-go
+- **Issues:** Report bugs and request features
+- **Discussions:** Ask questions and share scripts
+
+### GTK3 (for developers)
+
+- **GTK Documentation:** https://www.gtk.org/docs/
+- **gotk3 Library:** https://github.com/gotk3/gotk3
+
+---
+
+## What's Next?
+
+### Explore Features
+
+- [x] Try all keyboard shortcuts
+- [x] Insert different code snippets
+- [x] Open multiple tabs
+- [x] Use find & replace
+- [x] Customize configuration
+- [x] Try console commands
+
+### Advanced Usage
+
+- Write complex scripts with functions
+- Use PowerShell modules
+- Integrate with system services
+- Create automation workflows
+- Share scripts with team
+
+### Contribute
+
+PS-IDE-Go is open source! Contributions welcome:
+
+- Report bugs on GitHub
+- Suggest features
+- Submit pull requests
+- Share your experience
+- Help other users
+
+---
+
+## Version Information
+
+**Current Version:** v1.0.0  
+**Release Date:** February 2026  
+**Platform:** Linux (primary), macOS/Windows (experimental)  
+**Status:** Production Ready
+
+**What's included in v1.0.0:**
+- ✅ Multi-tab editor
+- ✅ Integrated PowerShell console
+- ✅ Syntax highlighting (Chroma)
+- ✅ Code snippets (18 built-in)
+- ✅ Find & replace
+- ✅ Keyboard shortcuts
+- ✅ Tab management
+- ✅ Native GTK3 UI
+- ✅ Zero configuration
+
+---
+
+**Happy scripting with PS-IDE-Go!** 🚀🐧
+
+*Optimized for Linux. Built by Linux users, for Linux users.*

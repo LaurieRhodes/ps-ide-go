@@ -30,15 +30,15 @@ func New() (*TranslationLayer, error) {
 		isExecuting: false,
 		stopChan:    make(chan bool, 1),
 	}
-	
+
 	// Start the pipe communicator
 	if err := tl.pipes.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start pipe communicator: %w", err)
 	}
-	
+
 	// Initialize session with PowerShell version
 	go tl.initializeSession()
-	
+
 	return tl, nil
 }
 
@@ -46,12 +46,12 @@ func New() (*TranslationLayer, error) {
 func (tl *TranslationLayer) initializeSession() {
 	// Wait a moment for PowerShell to be ready
 	time.Sleep(500 * time.Millisecond)
-	
+
 	// Query PowerShell version
 	if result, err := tl.pipes.QueryState("$PSVersionTable.PSVersion.ToString()"); err == nil {
 		tl.session.SetPSVersion(strings.TrimSpace(result))
 	}
-	
+
 	// Query current directory
 	if result, err := tl.pipes.QueryState("(Get-Location).Path"); err == nil {
 		tl.session.SetCurrentDirectory(strings.TrimSpace(result))
@@ -67,24 +67,24 @@ func (tl *TranslationLayer) ExecuteCommand(cmd string) (string, error) {
 	}
 	tl.isExecuting = true
 	tl.mutex.Unlock()
-	
+
 	defer func() {
 		tl.mutex.Lock()
 		tl.isExecuting = false
 		tl.mutex.Unlock()
 	}()
-	
+
 	// Add to history
 	if err := tl.queue.Add(cmd, Interactive); err != nil {
 		return "", err
 	}
-	
+
 	// Record start time
 	startTime := time.Now()
-	
+
 	// Execute command
 	result, err := tl.pipes.SendCommand(cmd, Interactive)
-	
+
 	// Record execution time and result
 	duration := time.Since(startTime)
 	success := err == nil
@@ -92,16 +92,16 @@ func (tl *TranslationLayer) ExecuteCommand(cmd string) (string, error) {
 	if !success {
 		exitCode = 1
 	}
-	
+
 	tl.queue.UpdateLastEntry(duration, success, exitCode)
-	
-	// Update session state (query current directory)
-	go tl.updateDirectory()
-	
+
+	// Update session state (synchronous to ensure prompt shows correct directory)
+	tl.updateDirectory()
+
 	if err != nil {
 		return "", fmt.Errorf("command execution failed: %w", err)
 	}
-	
+
 	return result, nil
 }
 
@@ -114,25 +114,25 @@ func (tl *TranslationLayer) ExecuteScript(path string) (string, error) {
 	}
 	tl.isExecuting = true
 	tl.mutex.Unlock()
-	
+
 	defer func() {
 		tl.mutex.Lock()
 		tl.isExecuting = false
 		tl.mutex.Unlock()
 	}()
-	
+
 	// Add to history
 	scriptCmd := fmt.Sprintf("& '%s'", path)
 	if err := tl.queue.Add(scriptCmd, Script); err != nil {
 		return "", err
 	}
-	
+
 	// Record start time
 	startTime := time.Now()
-	
+
 	// Execute script
 	result, err := tl.pipes.ExecuteScript(path)
-	
+
 	// Record execution time
 	duration := time.Since(startTime)
 	success := err == nil
@@ -140,16 +140,16 @@ func (tl *TranslationLayer) ExecuteScript(path string) (string, error) {
 	if !success {
 		exitCode = 1
 	}
-	
+
 	tl.queue.UpdateLastEntry(duration, success, exitCode)
-	
-	// Update session state
-	go tl.updateDirectory()
-	
+
+	// Update session state (synchronous to ensure prompt shows correct directory)
+	tl.updateDirectory()
+
 	if err != nil {
 		return "", fmt.Errorf("script execution failed: %w", err)
 	}
-	
+
 	return result, nil
 }
 
@@ -162,24 +162,24 @@ func (tl *TranslationLayer) ExecuteSelection(code string) (string, error) {
 	}
 	tl.isExecuting = true
 	tl.mutex.Unlock()
-	
+
 	defer func() {
 		tl.mutex.Lock()
 		tl.isExecuting = false
 		tl.mutex.Unlock()
 	}()
-	
+
 	// Add to history
 	if err := tl.queue.Add(code, Selection); err != nil {
 		return "", err
 	}
-	
+
 	// Record start time
 	startTime := time.Now()
-	
+
 	// Execute selection
 	result, err := tl.pipes.ExecuteScriptText(code)
-	
+
 	// Record execution time
 	duration := time.Since(startTime)
 	success := err == nil
@@ -187,16 +187,16 @@ func (tl *TranslationLayer) ExecuteSelection(code string) (string, error) {
 	if !success {
 		exitCode = 1
 	}
-	
+
 	tl.queue.UpdateLastEntry(duration, success, exitCode)
-	
-	// Update session state
-	go tl.updateDirectory()
-	
+
+	// Update session state (synchronous to ensure prompt shows correct directory)
+	tl.updateDirectory()
+
 	if err != nil {
 		return "", fmt.Errorf("selection execution failed: %w", err)
 	}
-	
+
 	return result, nil
 }
 
@@ -261,7 +261,7 @@ func (tl *TranslationLayer) Shutdown() error {
 		// Log error but don't fail shutdown
 		fmt.Printf("Warning: failed to save history: %v\n", err)
 	}
-	
+
 	// Stop pipe communicator
 	return tl.pipes.Stop()
 }
@@ -329,10 +329,10 @@ func (tl *TranslationLayer) SyncState() error {
 	if err := tl.updateDirectory(); err != nil {
 		return err
 	}
-	
+
 	// TODO: Query variables, functions, modules
 	// This will be implemented in Phase 2
-	
+
 	return nil
 }
 
@@ -342,7 +342,7 @@ func (tl *TranslationLayer) updateDirectory() error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Clean up result (remove quotes, whitespace)
 	cleanResult := strings.TrimSpace(result)
 	if len(cleanResult) > 0 && cleanResult[0] == '"' {
@@ -351,7 +351,7 @@ func (tl *TranslationLayer) updateDirectory() error {
 	if len(cleanResult) > 0 && cleanResult[len(cleanResult)-1] == '"' {
 		cleanResult = cleanResult[:len(cleanResult)-1]
 	}
-	
+
 	tl.session.SetCurrentDirectory(cleanResult)
 	return nil
 }

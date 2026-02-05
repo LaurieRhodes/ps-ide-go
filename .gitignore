@@ -28,3 +28,14 @@ Thumbs.db
 # Config files (if containing sensitive data)
 *.local.yaml
 *.local.json
+
+# Claude Summaries
+CLAUDE_SUMMARIES/*
+
+# Cleanup backups
+pre-*-backup-*/
+
+# Backup files
+*.backup
+*.bak
+*.tmp

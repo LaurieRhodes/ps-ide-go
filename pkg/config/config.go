@@ -9,20 +9,20 @@ import (
 // Config holds application configuration
 type Config struct {
 	// Editor settings
-	FontSize     int    `json:"fontSize"`
-	Theme        string `json:"theme"`
-	TabSize      int    `json:"tabSize"`
-	WordWrap     bool   `json:"wordWrap"`
-	LineNumbers  bool   `json:"lineNumbers"`
-	
+	FontSize    int    `json:"fontSize"`
+	Theme       string `json:"theme"`
+	TabSize     int    `json:"tabSize"`
+	WordWrap    bool   `json:"wordWrap"`
+	LineNumbers bool   `json:"lineNumbers"`
+
 	// Window settings
 	WindowWidth  int `json:"windowWidth"`
 	WindowHeight int `json:"windowHeight"`
-	
+
 	// PowerShell settings
 	ExecutionTimeout int    `json:"executionTimeout"` // in seconds
 	PowerShellPath   string `json:"powerShellPath"`
-	
+
 	// Recent files
 	RecentFiles []string `json:"recentFiles"`
 }

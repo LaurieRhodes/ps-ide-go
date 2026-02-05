@@ -64,7 +64,7 @@ func runScript() {
 
 	go func() {
 		output, err := translationLayer.ExecuteScript(tab.filename)
-		
+
 		glib.IdleAdd(func() bool {
 			if err != nil {
 				displayOutput(fmt.Sprintf("\nError: %v\n", err))
@@ -108,7 +108,7 @@ func runSelection() {
 
 	go func() {
 		output, err := translationLayer.ExecuteSelection(strings.TrimSpace(selection))
-		
+
 		glib.IdleAdd(func() bool {
 			if err != nil {
 				displayOutput(fmt.Sprintf("\nError: %v\n", err))
@@ -128,7 +128,7 @@ func stopExecution() {
 	if translationLayer == nil {
 		return
 	}
-	
+
 	translationLayer.StopExecution()
 	statusLabel.SetText("Execution stopped")
 	time.AfterFunc(2*time.Second, func() {

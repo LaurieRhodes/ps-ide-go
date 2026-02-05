@@ -21,17 +21,17 @@ type CommandQueue struct {
 func NewCommandQueue(maxSize int) *CommandQueue {
 	homeDir, _ := os.UserHomeDir()
 	persistPath := filepath.Join(homeDir, ".ps-ide", "history.json")
-	
+
 	cq := &CommandQueue{
 		history:      make([]CommandEntry, 0, maxSize),
 		currentIndex: 0,
 		maxSize:      maxSize,
 		persistPath:  persistPath,
 	}
-	
+
 	// Try to load existing history
 	cq.Load()
-	
+
 	return cq
 }
 
@@ -39,12 +39,12 @@ func NewCommandQueue(maxSize int) *CommandQueue {
 func (cq *CommandQueue) Add(command string, cmdType CommandType) error {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	// Don't add empty commands
 	if command == "" {
 		return nil
 	}
-	
+
 	// Don't add duplicate consecutive commands
 	if len(cq.history) > 0 {
 		lastEntry := cq.history[len(cq.history)-1]
@@ -52,10 +52,10 @@ func (cq *CommandQueue) Add(command string, cmdType CommandType) error {
 			return nil
 		}
 	}
-	
+
 	// Get current working directory
 	workingDir, _ := os.Getwd()
-	
+
 	entry := CommandEntry{
 		Command:    command,
 		Timestamp:  time.Now(),
@@ -63,17 +63,17 @@ func (cq *CommandQueue) Add(command string, cmdType CommandType) error {
 		WorkingDir: workingDir,
 		Success:    true, // Will be updated after execution
 	}
-	
+
 	cq.history = append(cq.history, entry)
-	
+
 	// Trim if exceeds max size
 	if len(cq.history) > cq.maxSize {
 		cq.history = cq.history[1:]
 	}
-	
+
 	// Reset navigation index
 	cq.currentIndex = len(cq.history)
-	
+
 	return nil
 }
 
@@ -81,20 +81,20 @@ func (cq *CommandQueue) Add(command string, cmdType CommandType) error {
 func (cq *CommandQueue) GetPrevious() (string, bool) {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	if len(cq.history) == 0 {
 		return "", false
 	}
-	
+
 	// Move back in history
 	if cq.currentIndex > 0 {
 		cq.currentIndex--
 	}
-	
+
 	if cq.currentIndex < len(cq.history) {
 		return cq.history[cq.currentIndex].Command, true
 	}
-	
+
 	return "", false
 }
 
@@ -102,21 +102,21 @@ func (cq *CommandQueue) GetPrevious() (string, bool) {
 func (cq *CommandQueue) GetNext() (string, bool) {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	if len(cq.history) == 0 {
 		return "", false
 	}
-	
+
 	// Move forward in history
 	if cq.currentIndex < len(cq.history) {
 		cq.currentIndex++
 	}
-	
+
 	// If at the end, return empty (like PSReadLine)
 	if cq.currentIndex >= len(cq.history) {
 		return "", true
 	}
-	
+
 	return cq.history[cq.currentIndex].Command, true
 }
 
@@ -124,7 +124,7 @@ func (cq *CommandQueue) GetNext() (string, bool) {
 func (cq *CommandQueue) GetAll() []CommandEntry {
 	cq.mutex.RLock()
 	defer cq.mutex.RUnlock()
-	
+
 	// Return a copy to prevent external modification
 	result := make([]CommandEntry, len(cq.history))
 	copy(result, cq.history)
@@ -135,16 +135,16 @@ func (cq *CommandQueue) GetAll() []CommandEntry {
 func (cq *CommandQueue) GetRecent(n int) []CommandEntry {
 	cq.mutex.RLock()
 	defer cq.mutex.RUnlock()
-	
+
 	if n <= 0 || len(cq.history) == 0 {
 		return []CommandEntry{}
 	}
-	
+
 	start := len(cq.history) - n
 	if start < 0 {
 		start = 0
 	}
-	
+
 	result := make([]CommandEntry, len(cq.history)-start)
 	copy(result, cq.history[start:])
 	return result
@@ -154,10 +154,10 @@ func (cq *CommandQueue) GetRecent(n int) []CommandEntry {
 func (cq *CommandQueue) Clear() error {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	cq.history = make([]CommandEntry, 0, cq.maxSize)
 	cq.currentIndex = 0
-	
+
 	return cq.Save()
 }
 
@@ -165,7 +165,7 @@ func (cq *CommandQueue) Clear() error {
 func (cq *CommandQueue) ResetIndex() {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	cq.currentIndex = len(cq.history)
 }
 
@@ -173,11 +173,11 @@ func (cq *CommandQueue) ResetIndex() {
 func (cq *CommandQueue) UpdateLastEntry(duration time.Duration, success bool, exitCode int) {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	if len(cq.history) == 0 {
 		return
 	}
-	
+
 	lastIndex := len(cq.history) - 1
 	cq.history[lastIndex].Duration = duration
 	cq.history[lastIndex].Success = success
@@ -188,19 +188,19 @@ func (cq *CommandQueue) UpdateLastEntry(duration time.Duration, success bool, ex
 func (cq *CommandQueue) Save() error {
 	cq.mutex.RLock()
 	defer cq.mutex.RUnlock()
-	
+
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(cq.persistPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	
+
 	// Marshal to JSON
 	data, err := json.MarshalIndent(cq.history, "", "  ")
 	if err != nil {
 		return err
 	}
-	
+
 	// Write to file
 	return os.WriteFile(cq.persistPath, data, 0644)
 }
@@ -209,32 +209,32 @@ func (cq *CommandQueue) Save() error {
 func (cq *CommandQueue) Load() error {
 	cq.mutex.Lock()
 	defer cq.mutex.Unlock()
-	
+
 	// Check if file exists
 	if _, err := os.Stat(cq.persistPath); os.IsNotExist(err) {
 		return nil // Not an error, just no history yet
 	}
-	
+
 	// Read file
 	data, err := os.ReadFile(cq.persistPath)
 	if err != nil {
 		return err
 	}
-	
+
 	// Unmarshal JSON
 	var history []CommandEntry
 	if err := json.Unmarshal(data, &history); err != nil {
 		return err
 	}
-	
+
 	// Apply max size limit
 	if len(history) > cq.maxSize {
 		history = history[len(history)-cq.maxSize:]
 	}
-	
+
 	cq.history = history
 	cq.currentIndex = len(cq.history)
-	
+
 	return nil
 }
 
@@ -242,7 +242,7 @@ func (cq *CommandQueue) Load() error {
 func (cq *CommandQueue) GetSize() int {
 	cq.mutex.RLock()
 	defer cq.mutex.RUnlock()
-	
+
 	return len(cq.history)
 }
 
@@ -250,7 +250,7 @@ func (cq *CommandQueue) GetSize() int {
 func (cq *CommandQueue) GetCurrentIndex() int {
 	cq.mutex.RLock()
 	defer cq.mutex.RUnlock()
-	
+
 	return cq.currentIndex
 }
 
@@ -258,27 +258,27 @@ func (cq *CommandQueue) GetCurrentIndex() int {
 func (cq *CommandQueue) Search(query string) []CommandEntry {
 	cq.mutex.RLock()
 	defer cq.mutex.RUnlock()
-	
+
 	if query == "" {
 		return []CommandEntry{}
 	}
-	
+
 	var results []CommandEntry
 	for _, entry := range cq.history {
 		if contains(entry.Command, query) {
 			results = append(results, entry)
 		}
 	}
-	
+
 	return results
 }
 
 // contains is a case-insensitive substring check
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && 
-		   (s == substr || 
-		    len(s) > len(substr) && 
-		    indexSubstring(s, substr) >= 0)
+	return len(s) >= len(substr) &&
+		(s == substr ||
+			len(s) > len(substr) &&
+				indexSubstring(s, substr) >= 0)
 }
 
 // indexSubstring finds substring index (case-insensitive)

@@ -77,8 +77,8 @@ type PSOutput struct {
 // ANSISegment represents a segment of text with ANSI formatting
 type ANSISegment struct {
 	Text      string
-	FGColor   int  // ANSI color code (30-37, 90-97)
-	BGColor   int  // ANSI background color code (40-47, 100-107)
+	FGColor   int // ANSI color code (30-37, 90-97)
+	BGColor   int // ANSI background color code (40-47, 100-107)
 	Bold      bool
 	Underline bool
 	Italic    bool
