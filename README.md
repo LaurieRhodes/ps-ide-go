@@ -1,10 +1,12 @@
 # PS-IDE-Go
 
-A modern PowerShell IDE built with Go and GTK3, providing a lightweight and native development environment for PowerShell scripting on Linux.
+A modern PowerShell 7 IDE built with Go and GTK3, providing a lightweight and native development environment for PowerShell scripting on Linux.
 
 [![CI](https://github.com/LaurieRhodes/ps-ide-go/actions/workflows/ci.yml/badge.svg)](https://github.com/LaurieRhodes/ps-ide-go/actions/workflows/ci.yml)
 [![Release](https://github.com/LaurieRhodes/ps-ide-go/actions/workflows/release.yml/badge.svg)](https://github.com/LaurieRhodes/ps-ide-go/actions/workflows/release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LaurieRhodes/ps-ide-go)](https://goreportcard.com/report/github.com/LaurieRhodes/ps-ide-go)
+
+![](docs/img/pshell_ise.png)
 
 ## Features
 
@@ -20,10 +22,10 @@ A modern PowerShell IDE built with Go and GTK3, providing a lightweight and nati
 
 ## Platform Support
 
-| Platform | Status | Notes |
-|----------|--------|-------|
+| Platform  | Status                | Notes                                     |
+| --------- | --------------------- | ----------------------------------------- |
 | **Linux** | ✅ **Fully Supported** | Native GTK3, optimized, one-liner install |
-| **macOS** | ⚠️ **Experimental** | Requires GTK3 via Homebrew, not native UI |
+| **macOS** | ⚠️ **Experimental**   | Requires GTK3 via Homebrew, not native UI |
 
 > **Note:** PS-IDE-Go is designed primarily for Linux. While builds are provided for macOS, it requires additional setup and doesn't provide the native experience that Linux users enjoy. For v1.0.0, we recommend Linux for the best experience.
 
@@ -32,11 +34,13 @@ A modern PowerShell IDE built with Go and GTK3, providing a lightweight and nati
 ### Linux (Recommended) 🚀
 
 **One-command install:**
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/LaurieRhodes/ps-ide-go/main/install.sh | bash
 ```
 
 This will automatically:
+
 - Install PowerShell and GTK3 runtime dependencies
 - Download the latest release binary for your architecture
 - Install to `~/.local/bin` (or `/usr/local/bin` with sudo)
@@ -45,36 +49,46 @@ This will automatically:
 **Manual binary install:**
 
 1. Install runtime dependencies:
-```bash
-# Ubuntu/Debian
-sudo apt install powershell libgtk-3-0
+   
+   ```bash
+   # Ubuntu/Debian
+   sudo apt install powershell libgtk-3-0
+   ```
 
 # Fedora/RHEL
+
 sudo dnf install powershell gtk3
 
 # Arch Linux
-sudo pacman -S powershell gtk3
-```
 
+sudo pacman -S powershell gtk3
+
+```
 Or use our convenience script:
 ```bash
 ./install-runtime.sh
 ```
 
 2. Download and extract:
-```bash
-# Download latest release
-wget https://github.com/LaurieRhodes/ps-ide-go/releases/latest/download/ps-ide-linux-amd64.tar.gz
+   
+   ```bash
+   # Download latest release
+   wget https://github.com/LaurieRhodes/ps-ide-go/releases/latest/download/ps-ide-linux-amd64.tar.gz
+   ```
 
 # Extract
+
 tar xzf ps-ide-linux-amd64.tar.gz
 
 # Move to PATH
-sudo mv ps-ide /usr/local/bin/
-# or
-mv ps-ide ~/.local/bin/
-```
 
+sudo mv ps-ide /usr/local/bin/
+
+# or
+
+mv ps-ide ~/.local/bin/
+
+```
 3. Run:
 ```bash
 ps-ide
@@ -83,6 +97,7 @@ ps-ide
 ### macOS (Experimental) ⚠️
 
 **Prerequisites:**
+
 ```bash
 # Install Homebrew if not already installed
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -92,6 +107,7 @@ brew install powershell gtk+3
 ```
 
 **Install PS-IDE-Go:**
+
 ```bash
 # Download for your architecture
 # Intel Macs:
@@ -113,10 +129,10 @@ sudo mv ps-ide /usr/local/bin/
 
 ## Runtime Requirements
 
-| Platform | Required | Optional |
-|----------|----------|----------|
-| **Linux** | PowerShell, GTK3 runtime | - |
-| **macOS** | PowerShell, GTK3 (via Homebrew) | - |
+| Platform  | Required                        | Optional |
+| --------- | ------------------------------- | -------- |
+| **Linux** | PowerShell, GTK3 runtime        | -        |
+| **macOS** | PowerShell, GTK3 (via Homebrew) | -        |
 
 **Recommended:** Use Linux for the best experience. PS-IDE-Go is designed and optimized for Linux systems.
 
@@ -151,6 +167,7 @@ make build
 ### Manual Setup
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt install golang-go powershell \
     build-essential pkg-config \
@@ -161,6 +178,7 @@ go build -o ps-ide ./cmd/ps-ide
 ```
 
 **macOS:**
+
 ```bash
 brew install go powershell pkg-config gtk+3
 
@@ -187,11 +205,13 @@ make lint
 ## Usage
 
 Start the IDE:
+
 ```bash
 ps-ide
 ```
 
 Or open a specific file:
+
 ```bash
 ps-ide script.ps1
 ```
@@ -258,16 +278,19 @@ make pre-publish
 This project uses GitHub Actions for continuous integration and automated releases:
 
 - **CI Workflow** - Runs on every push/PR
+  
   - Tests on multiple Go versions (1.21, 1.22, 1.23)
   - Runs linting with golangci-lint
   - Builds and verifies the binary
 
 - **Release Workflow** - Triggered by version tags
+  
   - Builds binaries for Linux (amd64, arm64) and macOS (amd64, arm64)
   - Creates GitHub Release with all binaries
   - Includes SHA256 checksums for verification
 
 **Creating a release:**
+
 ```bash
 # Tag and push
 git tag -a v1.0.0 -m "Release v1.0.0"
@@ -297,6 +320,7 @@ PS-IDE-Go is a lightweight, single-binary application optimized for Linux with:
 #### "Command not found: ps-ide"
 
 **Solution:** Add install directory to PATH:
+
 ```bash
 # For ~/.local/bin
 echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
@@ -306,6 +330,7 @@ source ~/.bashrc
 #### "PowerShell (pwsh) not found"
 
 **Solution:** Install PowerShell:
+
 ```bash
 sudo apt install powershell  # Ubuntu/Debian
 ```
@@ -313,6 +338,7 @@ sudo apt install powershell  # Ubuntu/Debian
 #### "error while loading shared libraries: libgtk-3.so.0"
 
 **Solution:** Install GTK3 runtime:
+
 ```bash
 sudo apt install libgtk-3-0  # Ubuntu/Debian
 sudo dnf install gtk3         # Fedora
@@ -324,6 +350,7 @@ sudo pacman -S gtk3           # Arch
 #### "ps-ide" is damaged and can't be opened
 
 **Solution:** Remove quarantine flag:
+
 ```bash
 xattr -d com.apple.quarantine ps-ide
 ```
@@ -331,6 +358,7 @@ xattr -d com.apple.quarantine ps-ide
 #### GTK3 not found
 
 **Solution:** Install via Homebrew:
+
 ```bash
 brew install gtk+3
 ```
@@ -340,6 +368,7 @@ brew install gtk+3
 #### "C compiler not found"
 
 **Solution:** Install build tools:
+
 ```bash
 sudo apt install build-essential  # Ubuntu/Debian
 xcode-select --install            # macOS
@@ -347,23 +376,25 @@ xcode-select --install            # macOS
 
 ## Comparison: Install Methods (Linux)
 
-| Method | Time | Size | Best For |
-|--------|------|------|----------|
-| **One-liner** | 2 min | 65MB | Most users |
-| **Binary + deps** | 3 min | 65MB | Manual control |
-| **From source** | 8 min | 385MB | Developers |
+| Method            | Time  | Size  | Best For       |
+| ----------------- | ----- | ----- | -------------- |
+| **One-liner**     | 2 min | 65MB  | Most users     |
+| **Binary + deps** | 3 min | 65MB  | Manual control |
+| **From source**   | 8 min | 385MB | Developers     |
 
 **Recommendation:** Use the one-liner install for Linux. For other platforms, consider native alternatives.
 
 ## Future Plans
 
 ### v1.0.x - Linux Focus
+
 - Linux optimizations and polish
 - Snap/Flatpak packaging
 - AppImage distribution
 - Community feedback integration
 
 ### v2.0 - Multi-Platform
+
 - Native macOS UI (SwiftUI or Cocoa)
 - Or: Cross-platform rewrite with Electron/Tauri
 
@@ -392,6 +423,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Author
 
 **Laurie Rhodes**
+
 - GitHub: [@LaurieRhodes](https://github.com/LaurieRhodes)
 
 ## Acknowledgments
