@@ -423,6 +423,34 @@ func applyCss() {
 		flowbox togglebutton:hover {
 			background-color: #F0F0F0;
 		}
+		/* Remove borders from editor scrolled windows */
+		scrolledwindow {
+			border: none;
+			box-shadow: none;
+			outline: none;
+		}
+		scrolledwindow.flat {
+			border: none;
+			box-shadow: none;
+		}
+		scrolledwindow frame {
+			border: none;
+			box-shadow: none;
+		}
+		scrolledwindow junction {
+			background-color: transparent;
+		}
+		scrolledwindow textview {
+			border: none;
+		}
+		scrolledwindow textview border {
+			background-color: transparent;
+			border: none;
+		}
+		viewport {
+			border: none;
+			box-shadow: none;
+		}
 	`
 	cssProvider.LoadFromData(css)
 	screen, _ := gdk.ScreenGetDefault()

@@ -255,24 +255,7 @@ func (sh *ChromaSyntaxHighlighter) mapChromaTokenToGTK(tokenType chroma.TokenTyp
 
 // OnBufferChanged is called when the buffer changes (incremental highlighting)
 func (sh *ChromaSyntaxHighlighter) OnBufferChanged(buffer *gtk.TextBuffer) {
-	// Get the current cursor position to determine changed line
-	insertMark := buffer.GetInsert()
-	iter := buffer.GetIterAtMark(insertMark)
-	lineNum := iter.GetLine()
-
-	// Highlight a range around the changed line for context
-	startLine := lineNum - 2
-	if startLine < 0 {
-		startLine = 0
-	}
-
-	endLine := lineNum + 2
-	lineCount := buffer.GetLineCount()
-	if endLine >= lineCount {
-		endLine = lineCount - 1
-	}
-
-	sh.HighlightRange(startLine, endLine)
+	sh.Highlight()
 }
 
 // UpdateZoom updates syntax highlighting after zoom changes

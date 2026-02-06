@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -37,6 +38,10 @@ func createLineNumberView() *LineNumberView {
 	textView.SetMonospace(true)
 	textView.SetLeftMargin(5)
 	textView.SetRightMargin(8) // More right margin for spacing
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_LEFT, 0)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_RIGHT, 0)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_TOP, 0)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_BOTTOM, 0)
 
 	buffer, _ := textView.GetBuffer()
 	buffer.SetText("1")
@@ -91,8 +96,12 @@ func createNewTab() *ScriptTab {
 	textView, _ := gtk.TextViewNew()
 	textView.SetWrapMode(gtk.WRAP_NONE)
 	textView.SetMonospace(true)
-	textView.SetLeftMargin(0) // No left margin - line numbers provide spacing
+	textView.SetLeftMargin(2)
 	textView.SetRightMargin(5)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_LEFT, 0)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_RIGHT, 0)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_TOP, 0)
+	textView.SetBorderWindowSize(gtk.TEXT_WINDOW_BOTTOM, 0)
 
 	// Add right-click context menu
 	textView.Connect("button-press-event", func(_ *gtk.TextView, event *gdk.Event) bool {
@@ -123,11 +132,19 @@ func createNewTab() *ScriptTab {
 		styleContext.AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	}
 
-	// Create editor ScrolledWindow
+	// Create line number view
+	lineNumView := createLineNumberView()
+
+	// Create a single ScrolledWindow containing both line numbers and editor
+	// This eliminates the border between them entirely
+	innerHBox, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
+	innerHBox.PackStart(lineNumView.textView, false, false, 0)
+	innerHBox.PackStart(textView, true, true, 0)
+
 	editorScroll, _ := gtk.ScrolledWindowNew(nil, nil)
 	editorScroll.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-	editorScroll.SetShadowType(gtk.SHADOW_IN)
-	editorScroll.Add(textView)
+	editorScroll.SetShadowType(gtk.SHADOW_NONE)
+	editorScroll.Add(innerHBox)
 
 	// CRITICAL: Prevent ScrolledWindow from requesting child's natural height
 	// Must be set AFTER adding the child
@@ -141,37 +158,11 @@ func createNewTab() *ScriptTab {
 	editorScroll.SetVExpand(true)
 	editorScroll.SetHExpand(true)
 
-	// Create line number view
-	lineNumView := createLineNumberView()
-
-	// Create a separate ScrolledWindow JUST for line numbers
-	// This has its own scrolling but we'll sync it with the editor
-	lineNumScroll, _ := gtk.ScrolledWindowNew(nil, editorScroll.GetVAdjustment())
-	lineNumScroll.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_EXTERNAL)
-	lineNumScroll.Add(lineNumView.textView)
-	lineNumScroll.SetShadowType(gtk.SHADOW_NONE) // No border
-	lineNumScroll.SetVExpand(true)
-	lineNumScroll.SetHExpand(false)
-	lineNumScroll.SetSizeRequest(50, -1)
-
-	// Use HBox but DON'T let line numbers affect height
-	hbox, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
-	hbox.SetVExpand(true)
-	hbox.SetHExpand(true)
-
-	// CRITICAL: Set these properties to prevent HBox from requesting natural height
-	hbox.Set("baseline-position", 0)
-
-	// Pack line numbers without expand - fixed width
-	hbox.PackStart(lineNumScroll, false, false, 0)
-	// Pack editor with expand - takes remaining space
-	hbox.PackStart(editorScroll, true, true, 0)
-
-	// Wrap in another container that enforces size constraints
+	// Wrap in container
 	wrapper, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
 	wrapper.SetVExpand(true)
 	wrapper.SetHExpand(true)
-	wrapper.PackStart(hbox, true, true, 0)
+	wrapper.PackStart(editorScroll, true, true, 0)
 
 	container := wrapper
 
@@ -220,6 +211,17 @@ func createNewTab() *ScriptTab {
 		// Perform incremental syntax highlighting
 		if tab.syntaxHighlighter != nil {
 			tab.syntaxHighlighter.OnBufferChanged(buffer)
+		}
+	})
+
+	// Full rehighlight after paste operations
+	textView.Connect("paste-clipboard", func() {
+		if tab.syntaxHighlighter != nil {
+			// Use IdleAdd to run after the paste has been applied to the buffer
+			glib.IdleAdd(func() bool {
+				tab.syntaxHighlighter.Highlight()
+				return false // run once
+			})
 		}
 	})
 

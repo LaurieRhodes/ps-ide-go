@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -49,6 +50,14 @@ func pasteText() {
 
 	clipboard, _ := gtk.ClipboardGet(gdk.SELECTION_CLIPBOARD)
 	tab.buffer.PasteClipboard(clipboard, nil, true)
+
+	// Defer rehighlight until after GTK has inserted the paste content
+	if tab.syntaxHighlighter != nil {
+		glib.IdleAdd(func() bool {
+			tab.syntaxHighlighter.Highlight()
+			return false
+		})
+	}
 
 	statusLabel.SetText("Pasted from clipboard")
 }
